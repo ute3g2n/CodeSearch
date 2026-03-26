@@ -1,0 +1,76 @@
+/* グローバルCSS変数定義 */
+/* 要件定義書セクション5.2のダークテーマ配色 */
+:root {
+  --color-editor-bg: #1e1e1e;
+  --color-editor-fg: #d4d4d4;
+  --color-sidebar-bg: #252526;
+  --color-sidebar-fg: #cccccc;
+  --color-sidebar-section-header: #3c3c3c;
+  --color-activity-bar-bg: #333333;
+  --color-activity-bar-fg: #858585;
+  --color-activity-bar-active-fg: #ffffff;
+  --color-activity-bar-active-border: #007acc;
+  --color-title-bar-bg: #3c3c3c;
+  --color-title-bar-fg: #cccccc;
+  --color-status-bar-bg: #007acc;
+  --color-status-bar-fg: #ffffff;
+  --color-border: #3c3c3c;
+  --color-accent: #007acc;
+  --color-input-bg: #3c3c3c;
+  --color-input-fg: #cccccc;
+  --color-input-border: #555555;
+  --color-list-hover-bg: #2a2d2e;
+  --color-list-active-bg: #094771;
+
+  /* フォント */
+  --font-ui: "Segoe UI", sans-serif;
+  --font-editor: Consolas, "Courier New", monospace;
+  --font-size-ui: 13px;
+  --font-size-editor: 14px;
+
+  /* レイアウト寸法 */
+  --title-bar-height: 32px;
+  --activity-bar-width: 48px;
+  --status-bar-height: 22px;
+  --sidebar-default-width: 300px;
+}
+
+/* ベースリセット */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-ui);
+  color: var(--color-editor-fg);
+  background-color: var(--color-editor-bg);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button:focus-visible {
+  outline: 1px solid var(--color-accent);
+  outline-offset: -1px;
+}
