@@ -32,3 +32,17 @@ pub struct AppState {
     /// SQLite データベース（WALモード + busy_timeout=5000ms）
     pub database: Arc<Database>,
 }
+
+impl AppState {
+    /// デフォルトの AppState を生成する
+    pub fn new() -> Self {
+        Self {
+            workspace_service: Arc::new(WorkspaceService::new()),
+            search_service: Arc::new(RwLock::new(SearchService)),
+            bookmark_service: Arc::new(BookmarkService),
+            config_service: Arc::new(RwLock::new(ConfigService::new())),
+            file_watcher: Arc::new(Mutex::new(None)),
+            database: Arc::new(Database),
+        }
+    }
+}
