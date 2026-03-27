@@ -30,7 +30,10 @@ tokio = { version = "1", features = ["full"] }
 # 全文検索エンジン
 tantivy = "0.22"
 
-# 日本語トークナイザ（lindera-tantivy は依存関係が複雑なため後で追加）
+# 正規表現検索（フォールバック用）
+regex = "1"
+
+# 日本語トークナイザ（Unicode文字境界ベース N-gram、lindera は後で追加予定）
 # lindera-tantivy = "0.31"
 
 # データベース
@@ -53,6 +56,9 @@ chardetng = "0.1"
 
 # 日時
 chrono = { version = "0.4", features = ["serde"] }
+
+# データディレクトリ解決
+dirs-next = "2"
 
 # ログ
 tracing = "0.1"

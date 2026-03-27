@@ -1,0 +1,87 @@
+/// 検索関連の Tauri コマンド
+///
+/// - search_fulltext: 全文検索を実行する
+/// - build_index: ワークスペースのインデックスを構築する
+/// - get_index_status: インデックスの状態を取得する
+/// - get_search_history: 検索履歴を取得する
+/// - clear_search_history: 検索履歴を全件削除する
+use tauri::State;
+
+use crate::errors::{CommandError, CommandResult};
+use crate::models::search::{HistoryEntry, IndexStatus, SearchOptions, SearchResult};
+use crate::state::AppState;
+use crate::storage::history_repo::HistoryRepo;
+
+/// 全文検索を実行する
+///
+/// - `query`: 検索テキスト
+/// - `opts`: 検索オプション
+#[tauri::command]
+pub async fn search_fulltext(
+    query: String,
+    opts: SearchOptions,
+    state: State<'_, AppState>,
+) -> CommandResult<SearchResult> {
+    let svc = state.search_service.read().await;
+    let result = svc
+        .search(&query, &opts, &state.database)
+        .map_err(CommandError::from)?;
+    Ok(result)
+}
+
+/// ワークスペースのインデックスを構築する
+///
+/// - `workspace_root`: ワークスペースのルートパス（絶対パス）
+/// - `workspace_id`: ワークスペースID（インデックスディレクトリ名）
+#[tauri::command]
+pub async fn build_index(
+    workspace_root: String,
+    workspace_id: String,
+    state: State<'_, AppState>,
+) -> CommandResult<u64> {
+    let mut svc = state.search_service.write().await;
+    let doc_count = svc
+        .build_index(&workspace_root, &workspace_id)
+        .map_err(CommandError::from)?;
+    Ok(doc_count)
+}
+
+/// インデックスの状態を取得する
+#[tauri::command]
+pub async fn get_index_status(
+    state: State<'_, AppState>,
+) -> CommandResult<IndexStatus> {
+    let svc = state.search_service.read().await;
+    Ok(svc.status())
+}
+
+/// 検索履歴を取得する
+///
+/// - `workspace_id`: ワークスペースID
+/// - `limit`: 取得件数（省略時は 50）
+#[tauri::command]
+pub async fn get_search_history(
+    workspace_id: String,
+    limit: Option<u32>,
+    state: State<'_, AppState>,
+) -> CommandResult<Vec<HistoryEntry>> {
+    let repo = HistoryRepo::new(&state.database);
+    let entries = repo
+        .list(&workspace_id, limit.unwrap_or(50))
+        .map_err(CommandError::from)?;
+    Ok(entries)
+}
+
+/// 検索履歴を全件削除する
+///
+/// - `workspace_id`: ワークスペースID
+#[tauri::command]
+pub async fn clear_search_history(
+    workspace_id: String,
+    state: State<'_, AppState>,
+) -> CommandResult<()> {
+    let repo = HistoryRepo::new(&state.database);
+    repo.clear_workspace(&workspace_id)
+        .map_err(CommandError::from)?;
+    Ok(())
+}

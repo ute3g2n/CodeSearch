@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 
@@ -34,15 +35,18 @@ pub struct AppState {
 }
 
 impl AppState {
-    /// デフォルトの AppState を生成する
-    pub fn new() -> Self {
+    /// データディレクトリを指定して AppState を生成する
+    pub fn new(data_dir: PathBuf) -> Self {
+        let database = Arc::new(
+            Database::open(&data_dir).expect("データベースの初期化に失敗しました"),
+        );
         Self {
             workspace_service: Arc::new(WorkspaceService::new()),
-            search_service: Arc::new(RwLock::new(SearchService)),
+            search_service: Arc::new(RwLock::new(SearchService::new(data_dir))),
             bookmark_service: Arc::new(BookmarkService),
             config_service: Arc::new(RwLock::new(ConfigService::new())),
             file_watcher: Arc::new(Mutex::new(None)),
-            database: Arc::new(Database),
+            database,
         }
     }
 }
