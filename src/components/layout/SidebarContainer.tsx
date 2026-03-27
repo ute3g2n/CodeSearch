@@ -1,4 +1,5 @@
 import React from "react";
+import SearchSidebar from "../search/SearchSidebar";
 
 // サイドバーに表示するパネル種別
 type SidebarKind = "explorer" | "search";
@@ -49,7 +50,13 @@ const SidebarContainer: React.FC<SidebarContainerProps> = ({
             <div className="sidebar-panel" data-panel-type="explorer" />
           )}
           {activeSidebar === "search" && (
-            <div className="sidebar-panel" data-panel-type="search" />
+            <div
+              className="sidebar-panel"
+              data-panel-type="search"
+              style={{ height: "100%" }}
+            >
+              <SearchSidebar />
+            </div>
           )}
         </div>
       )}

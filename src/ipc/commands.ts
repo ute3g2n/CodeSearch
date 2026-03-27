@@ -98,18 +98,29 @@ export async function searchFulltext(
   return invokeCommand<SearchResult>("search_fulltext", { query, options });
 }
 
-export async function buildIndex(): Promise<void> {
-  return invokeCommand<void>("build_index");
+export async function buildIndex(
+  workspaceRoot: string,
+  workspaceId: string
+): Promise<number> {
+  return invokeCommand<number>("build_index", { workspaceRoot, workspaceId });
 }
 
 export async function getIndexStatus(): Promise<IndexStatus> {
   return invokeCommand<IndexStatus>("get_index_status");
 }
 
-export async function getSearchHistory(limit?: number): Promise<HistoryEntry[]> {
+export async function getSearchHistory(
+  workspaceId: string,
+  limit?: number
+): Promise<HistoryEntry[]> {
   return invokeCommand<HistoryEntry[]>("get_search_history", {
-    limit: limit ?? 100,
+    workspaceId,
+    limit: limit ?? 50,
   });
+}
+
+export async function clearSearchHistory(workspaceId: string): Promise<void> {
+  return invokeCommand<void>("clear_search_history", { workspaceId });
 }
 
 // ===== ブックマーク系 =====
