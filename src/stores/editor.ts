@@ -39,6 +39,8 @@ const INITIAL_GROUP_ID = "group-1";
 interface EditorState {
   groups: EditorGroup[];
   activeGroupId: string;
+  /** 各グループの相対サイズ（合計が groups.length になるように正規化） */
+  groupSizes: number[];
   fileContentCache: Map<string, FileContent>;
   /** 閉じたタブのスタック（最大20件）。末尾が最新 */
   closedTabsStack: Tab[];
@@ -63,6 +65,12 @@ interface EditorState {
     toGroupId: string,
     toIndex: number
   ) => void;
+  /** タブを右に分割して新しいグループに移動する */
+  splitRight: (groupId: string, tabId: string) => void;
+  /** グループを削除する（最後の1グループは削除不可） */
+  removeGroup: (groupId: string) => void;
+  /** グループサイズを更新する（SplitHandle ドラッグ用） */
+  setGroupSizes: (sizes: number[]) => void;
   updateScrollTop: (tabId: string, scrollTop: number) => void;
   updateCursorLine: (tabId: string, line: number) => void;
 }
@@ -89,6 +97,7 @@ function updateGroup(
 export const useEditorStore = create<EditorState>((set, get) => ({
   groups: [{ id: INITIAL_GROUP_ID, tabs: [], activeTabId: null }],
   activeGroupId: INITIAL_GROUP_ID,
+  groupSizes: [1],
   fileContentCache: new Map(),
   closedTabsStack: [],
 
@@ -384,6 +393,79 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       return { groups: updatedGroups, activeGroupId: toGroupId };
     });
+  },
+
+  /** タブを右に分割して新しいグループに移動する */
+  splitRight: (groupId, tabId) => {
+    const { groups } = get();
+    const groupIndex = groups.findIndex((g) => g.id === groupId);
+    if (groupIndex === -1) return;
+
+    const group = groups[groupIndex];
+    const tab = group.tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+
+    const newGroupId = genId();
+    const newGroup: EditorGroup = {
+      id: newGroupId,
+      tabs: [tab],
+      activeTabId: tab.id,
+    };
+
+    set((state) => {
+      // 元グループからタブを削除
+      const updatedGroups = updateGroup(state.groups, groupId, (g) => ({
+        ...g,
+        tabs: g.tabs.filter((t) => t.id !== tabId),
+        activeTabId:
+          g.activeTabId === tabId
+            ? (g.tabs.find((t) => t.id !== tabId)?.id ?? null)
+            : g.activeTabId,
+      }));
+      // 新グループを元グループの右に挿入
+      const nextGroups = [
+        ...updatedGroups.slice(0, groupIndex + 1),
+        newGroup,
+        ...updatedGroups.slice(groupIndex + 1),
+      ];
+      // サイズを均等に初期化
+      const nextSizes = nextGroups.map(() => 1);
+      return {
+        groups: nextGroups,
+        groupSizes: nextSizes,
+        activeGroupId: newGroupId,
+      };
+    });
+  },
+
+  /** グループを削除する（最後の1グループは削除不可） */
+  removeGroup: (groupId) => {
+    const { groups, activeGroupId } = get();
+    if (groups.length <= 1) return;
+
+    const removedIndex = groups.findIndex((g) => g.id === groupId);
+    if (removedIndex === -1) return;
+
+    set((state) => {
+      const nextGroups = state.groups.filter((g) => g.id !== groupId);
+      const nextSizes = nextGroups.map(() => 1);
+      // アクティブグループが削除された場合は隣のグループをアクティブに
+      let nextActiveGroupId = activeGroupId;
+      if (activeGroupId === groupId) {
+        const newIndex = Math.min(removedIndex, nextGroups.length - 1);
+        nextActiveGroupId = nextGroups[newIndex]?.id ?? nextGroups[0].id;
+      }
+      return {
+        groups: nextGroups,
+        groupSizes: nextSizes,
+        activeGroupId: nextActiveGroupId,
+      };
+    });
+  },
+
+  /** グループサイズを更新する */
+  setGroupSizes: (sizes) => {
+    set({ groupSizes: sizes });
   },
 
   /** スクロール位置を更新する */

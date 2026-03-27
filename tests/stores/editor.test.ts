@@ -272,3 +272,90 @@ describe("EditorStore.setActiveTab", () => {
     expect(getActiveTabId()).toBe(tabA.id);
   });
 });
+
+// --- splitRight テスト ---
+describe("EditorStore.splitRight", () => {
+  beforeEach(() => resetStore());
+
+  it("splitRight で新しいグループが右に作られること", async () => {
+    await useEditorStore.getState().openFile("/workspace/a.ts");
+    const tabId = getTabs()[0].id;
+
+    useEditorStore.getState().splitRight("group-1", tabId);
+
+    const { groups } = useEditorStore.getState();
+    expect(groups).toHaveLength(2);
+  });
+
+  it("splitRight でタブが新グループに移動すること", async () => {
+    await useEditorStore.getState().openFile("/workspace/a.ts");
+    const tabId = getTabs()[0].id;
+
+    useEditorStore.getState().splitRight("group-1", tabId);
+
+    const { groups } = useEditorStore.getState();
+    // 元グループからタブが消える
+    expect(groups[0].tabs).toHaveLength(0);
+    // 新グループにタブが移動
+    expect(groups[1].tabs).toHaveLength(1);
+    expect(groups[1].tabs[0].id).toBe(tabId);
+  });
+
+  it("splitRight で activeGroupId が新グループになること", async () => {
+    await useEditorStore.getState().openFile("/workspace/a.ts");
+    const tabId = getTabs()[0].id;
+
+    useEditorStore.getState().splitRight("group-1", tabId);
+
+    const { activeGroupId, groups } = useEditorStore.getState();
+    expect(activeGroupId).toBe(groups[1].id);
+  });
+
+  it("groupSizes が均等に初期化されること", async () => {
+    await useEditorStore.getState().openFile("/workspace/a.ts");
+    const tabId = getTabs()[0].id;
+
+    useEditorStore.getState().splitRight("group-1", tabId);
+
+    const { groupSizes } = useEditorStore.getState();
+    expect(groupSizes).toHaveLength(2);
+    expect(groupSizes[0]).toBeCloseTo(1);
+    expect(groupSizes[1]).toBeCloseTo(1);
+  });
+});
+
+// --- removeGroup テスト ---
+describe("EditorStore.removeGroup", () => {
+  beforeEach(() => resetStore());
+
+  it("グループを削除できること", async () => {
+    await useEditorStore.getState().openFile("/workspace/a.ts");
+    const tabId = getTabs()[0].id;
+    useEditorStore.getState().splitRight("group-1", tabId);
+
+    const { groups } = useEditorStore.getState();
+    useEditorStore.getState().removeGroup(groups[1].id);
+
+    expect(useEditorStore.getState().groups).toHaveLength(1);
+  });
+
+  it("最後のグループは削除できないこと", () => {
+    useEditorStore.getState().removeGroup("group-1");
+    expect(useEditorStore.getState().groups).toHaveLength(1);
+  });
+});
+
+// --- setGroupSizes テスト ---
+describe("EditorStore.setGroupSizes", () => {
+  beforeEach(() => resetStore());
+
+  it("グループサイズを更新できること", async () => {
+    await useEditorStore.getState().openFile("/workspace/a.ts");
+    const tabId = getTabs()[0].id;
+    useEditorStore.getState().splitRight("group-1", tabId);
+
+    useEditorStore.getState().setGroupSizes([1.5, 0.5]);
+
+    expect(useEditorStore.getState().groupSizes).toEqual([1.5, 0.5]);
+  });
+});

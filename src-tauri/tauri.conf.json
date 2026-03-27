@@ -34,7 +34,21 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": [],
+    "copyright": "© 2026 CodeSearch",
+    "category": "DeveloperTool",
+    "shortDescription": "ローカルコード全文検索ツール",
+    "longDescription": "CodeSearch は Tauri + Tantivy によるローカルコード全文検索ツールです。高速なインデックス検索・シンタックスハイライト・ブックマーク・ハイライトワード機能を提供します。",
+    "windows": {
+      "wix": {
+        "language": "ja-JP"
+      },
+      "nsis": {
+        "languages": ["Japanese"],
+        "installMode": "perMachine"
+      }
+    }
   },
   "plugins": {
     "dialog": {}

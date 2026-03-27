@@ -1,5 +1,5 @@
 // 検索セクションコンポーネント
-// 検索入力 + オプション + ファイルフィルタ + 結果表示をまとめた区画
+// 検索入力 + オプション + ファイルフィルタ + 履歴 + 結果表示をまとめた区画
 import React, { useState } from "react";
 import SearchInput from "./SearchInput";
 import SearchResultList from "./SearchResultList";
@@ -51,6 +51,7 @@ const SearchSection: React.FC = () => {
     result,
     isSearching,
     error,
+    history,
     setQuery,
     setOptions,
     executeSearch,
@@ -61,6 +62,7 @@ const SearchSection: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [includeValue, setIncludeValue] = useState("");
   const [excludeValue, setExcludeValue] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
 
   // includeGlob / excludeGlob の変更をストアに反映
   const handleIncludeChange = (value: string) => {
@@ -80,10 +82,16 @@ const SearchSection: React.FC = () => {
   const totalMatches = result?.totalMatches ?? 0;
   const fileCount = result?.groups.length ?? 0;
 
+  // 履歴エントリをクリックして検索クエリに反映する
+  const handleHistorySelect = (q: string) => {
+    setQuery(q);
+    setShowHistory(false);
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* 検索入力エリア */}
-      <div style={{ padding: "8px" }}>
+      <div style={{ padding: "8px", position: "relative" }}>
         <SearchInput
           value={query}
           onChange={setQuery}
@@ -102,6 +110,73 @@ const SearchSection: React.FC = () => {
           }
           autoFocus
         />
+
+        {/* 検索履歴ドロップダウン */}
+        {history.length > 0 && (
+          <button
+            onClick={() => setShowHistory((v) => !v)}
+            title="検索履歴"
+            style={{
+              position: "absolute",
+              right: "12px",
+              top: "8px",
+              background: "transparent",
+              border: "none",
+              color: "var(--color-sidebar-fg, #cccccc)",
+              cursor: "pointer",
+              fontSize: "14px",
+              lineHeight: "1",
+              padding: "2px 4px",
+              opacity: 0.7,
+            }}
+          >
+            ↓
+          </button>
+        )}
+
+        {/* 履歴ポップアップリスト */}
+        {showHistory && history.length > 0 && (
+          <div
+            style={{
+              position: "absolute",
+              top: "36px",
+              left: "8px",
+              right: "8px",
+              background: "var(--color-editor-bg, #1e1e1e)",
+              border: "1px solid var(--color-border, #3c3c3c)",
+              borderRadius: "4px",
+              zIndex: 100,
+              maxHeight: "200px",
+              overflowY: "auto",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+            }}
+          >
+            {history.map((entry) => (
+              <div
+                key={entry.id}
+                onClick={() => handleHistorySelect(entry.query)}
+                style={{
+                  padding: "6px 10px",
+                  fontSize: "12px",
+                  color: "var(--color-editor-fg, #d4d4d4)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background =
+                    "var(--color-list-active-bg, #094771)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                }}
+              >
+                {entry.query}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ファイルフィルタ展開ボタン */}
         <button

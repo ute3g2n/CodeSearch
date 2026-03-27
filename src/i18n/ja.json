@@ -1,0 +1,91 @@
+{
+  "search": {
+    "placeholder": "検索キーワードを入力...",
+    "title": "検索",
+    "button": "検索",
+    "history": "検索履歴",
+    "clearHistory": "履歴をクリア",
+    "noHistory": "検索履歴がありません",
+    "results": "件の結果",
+    "noResults": "結果なし",
+    "regex": "正規表現",
+    "caseSensitive": "大文字小文字を区別",
+    "wholeWord": "単語単位",
+    "includeGlob": "含めるパターン",
+    "excludeGlob": "除外パターン",
+    "buildIndex": "インデックス構築",
+    "indexing": "インデックス構築中...",
+    "indexReady": "インデックス準備完了",
+    "indexFiles": "件のファイル",
+    "indexLines": "行"
+  },
+  "bookmarks": {
+    "title": "ブックマーク",
+    "noBookmarks": "ブックマークはありません",
+    "deleteAll": "全て削除",
+    "colorGroup": "カラーグループ"
+  },
+  "highlights": {
+    "title": "ハイライト",
+    "noHighlights": "ハイライトはありません",
+    "delete": "削除",
+    "deleteAll": "全て削除",
+    "ignoreCase": "大文字小文字を無視",
+    "prev": "前へ",
+    "next": "次へ"
+  },
+  "workspace": {
+    "title": "ワークスペース",
+    "open": "フォルダを開く",
+    "recent": "最近開いたフォルダ",
+    "noRecent": "最近開いたフォルダはありません",
+    "close": "閉じる"
+  },
+  "editor": {
+    "welcome": "ようこそ",
+    "welcomeMessage": "ファイルツリーからファイルを選択してください",
+    "untitled": "無題",
+    "splitRight": "右に分割",
+    "close": "閉じる",
+    "closeOthers": "他を全て閉じる",
+    "closeRight": "右を全て閉じる",
+    "closeAll": "全て閉じる",
+    "reopenClosed": "閉じたタブを再度開く"
+  },
+  "settings": {
+    "title": "設定",
+    "editor": "エディタ",
+    "editorFontFamily": "フォントファミリー",
+    "editorFontSize": "フォントサイズ",
+    "ui": "UI",
+    "uiFontFamily": "UIフォントファミリー",
+    "uiFontSize": "UIフォントサイズ",
+    "minimap": "ミニマップ",
+    "minimapEnabled": "ミニマップを表示",
+    "language": "言語",
+    "languageJa": "日本語",
+    "languageEn": "English",
+    "excludePatterns": "除外パターン",
+    "excludePatternsHelp": "インデックスから除外するglobパターン（1行に1つ）",
+    "save": "保存",
+    "saved": "保存しました"
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "delete": "削除",
+    "error": "エラー",
+    "loading": "読み込み中...",
+    "copy": "コピー",
+    "open": "開く",
+    "close": "閉じる"
+  },
+  "notification": {
+    "indexComplete": "インデックス構築完了",
+    "indexFailed": "インデックス構築失敗",
+    "fileSaved": "ファイルを保存しました",
+    "copyPath": "パスをコピーしました",
+    "lockFailed": "他のインスタンスがインデックスを使用中です"
+  }
+}

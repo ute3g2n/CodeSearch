@@ -44,7 +44,7 @@ impl AppState {
             workspace_service: Arc::new(WorkspaceService::new(&data_dir)),
             search_service: Arc::new(RwLock::new(SearchService::new(data_dir.clone()))),
             bookmark_service: Arc::new(BookmarkService::new(database.clone())),
-            config_service: Arc::new(RwLock::new(ConfigService::new())),
+            config_service: Arc::new(RwLock::new(ConfigService::new(&data_dir))),
             file_watcher: Arc::new(Mutex::new(None)),
             database,
         }

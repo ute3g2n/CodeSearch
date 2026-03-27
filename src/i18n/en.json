@@ -1,0 +1,91 @@
+{
+  "search": {
+    "placeholder": "Enter search keyword...",
+    "title": "Search",
+    "button": "Search",
+    "history": "Search History",
+    "clearHistory": "Clear History",
+    "noHistory": "No search history",
+    "results": " results",
+    "noResults": "No results",
+    "regex": "Regex",
+    "caseSensitive": "Case Sensitive",
+    "wholeWord": "Whole Word",
+    "includeGlob": "Include Pattern",
+    "excludeGlob": "Exclude Pattern",
+    "buildIndex": "Build Index",
+    "indexing": "Building index...",
+    "indexReady": "Index ready",
+    "indexFiles": " files",
+    "indexLines": " lines"
+  },
+  "bookmarks": {
+    "title": "Bookmarks",
+    "noBookmarks": "No bookmarks",
+    "deleteAll": "Delete All",
+    "colorGroup": "Color Group"
+  },
+  "highlights": {
+    "title": "Highlights",
+    "noHighlights": "No highlights",
+    "delete": "Delete",
+    "deleteAll": "Delete All",
+    "ignoreCase": "Ignore Case",
+    "prev": "Previous",
+    "next": "Next"
+  },
+  "workspace": {
+    "title": "Workspace",
+    "open": "Open Folder",
+    "recent": "Recent Folders",
+    "noRecent": "No recent folders",
+    "close": "Close"
+  },
+  "editor": {
+    "welcome": "Welcome",
+    "welcomeMessage": "Select a file from the file tree",
+    "untitled": "Untitled",
+    "splitRight": "Split Right",
+    "close": "Close",
+    "closeOthers": "Close Others",
+    "closeRight": "Close to the Right",
+    "closeAll": "Close All",
+    "reopenClosed": "Reopen Closed Tab"
+  },
+  "settings": {
+    "title": "Settings",
+    "editor": "Editor",
+    "editorFontFamily": "Font Family",
+    "editorFontSize": "Font Size",
+    "ui": "UI",
+    "uiFontFamily": "UI Font Family",
+    "uiFontSize": "UI Font Size",
+    "minimap": "Minimap",
+    "minimapEnabled": "Show Minimap",
+    "language": "Language",
+    "languageJa": "Japanese",
+    "languageEn": "English",
+    "excludePatterns": "Exclude Patterns",
+    "excludePatternsHelp": "Glob patterns to exclude from index (one per line)",
+    "save": "Save",
+    "saved": "Saved"
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "error": "Error",
+    "loading": "Loading...",
+    "copy": "Copy",
+    "open": "Open",
+    "close": "Close"
+  },
+  "notification": {
+    "indexComplete": "Index build complete",
+    "indexFailed": "Index build failed",
+    "fileSaved": "File saved",
+    "copyPath": "Path copied",
+    "lockFailed": "Another instance is using the index"
+  }
+}

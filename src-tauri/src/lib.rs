@@ -47,6 +47,8 @@ pub fn run() {
             commands::workspace::open_workspace,
             commands::workspace::close_workspace,
             commands::workspace::list_recent_workspaces,
+            commands::config::get_config,
+            commands::config::save_config,
         ])
         .run(tauri::generate_context!())
         .expect("Tauriアプリの起動に失敗しました");

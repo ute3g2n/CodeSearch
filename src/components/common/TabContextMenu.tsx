@@ -85,6 +85,7 @@ const TabContextMenu: React.FC<TabContextMenuProps> = ({
     closeTabsToRight,
     closeAllTabs,
     openSearchEditor,
+    splitRight,
   } = useEditorStore();
 
   const isFileTab = tab.kind === "file";
@@ -178,10 +179,7 @@ const TabContextMenu: React.FC<TabContextMenuProps> = ({
       : []),
     {
       label: "右に分割",
-      onClick: () => {
-        // 将来実装：グループ分割
-      },
-      disabled: true,
+      onClick: () => splitRight(groupId, tab.id),
     },
   ];
 

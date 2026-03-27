@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 /// アプリケーション設定（settings.json と1:1対応）
+/// IPC 経由でフロントエンドに渡す際は camelCase に変換される
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default)]
+#[serde(rename_all = "camelCase", default)]
 pub struct AppConfig {
     /// エディタフォントファミリー
     pub editor_font_family: String,
