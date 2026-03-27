@@ -39,6 +39,14 @@ pub fn run() {
             commands::search::get_index_status,
             commands::search::get_search_history,
             commands::search::clear_search_history,
+            commands::bookmark::add_bookmark,
+            commands::bookmark::remove_bookmark,
+            commands::bookmark::get_bookmarks,
+            commands::bookmark::clear_bookmarks_by_color,
+            commands::workspace::select_directory,
+            commands::workspace::open_workspace,
+            commands::workspace::close_workspace,
+            commands::workspace::list_recent_workspaces,
         ])
         .run(tauri::generate_context!())
         .expect("Tauriアプリの起動に失敗しました");

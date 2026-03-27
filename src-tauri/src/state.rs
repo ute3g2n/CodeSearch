@@ -41,9 +41,9 @@ impl AppState {
             Database::open(&data_dir).expect("データベースの初期化に失敗しました"),
         );
         Self {
-            workspace_service: Arc::new(WorkspaceService::new()),
-            search_service: Arc::new(RwLock::new(SearchService::new(data_dir))),
-            bookmark_service: Arc::new(BookmarkService),
+            workspace_service: Arc::new(WorkspaceService::new(&data_dir)),
+            search_service: Arc::new(RwLock::new(SearchService::new(data_dir.clone()))),
+            bookmark_service: Arc::new(BookmarkService::new(database.clone())),
             config_service: Arc::new(RwLock::new(ConfigService::new())),
             file_watcher: Arc::new(Mutex::new(None)),
             database,
