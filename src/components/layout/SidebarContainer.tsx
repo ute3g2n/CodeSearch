@@ -1,8 +1,9 @@
 import React from "react";
 import SearchSidebar from "../search/SearchSidebar";
-
-// サイドバーに表示するパネル種別
-type SidebarKind = "explorer" | "search";
+import SettingsPanel from "../settings/SettingsPanel";
+import ExplorerPanel from "../explorer/ExplorerPanel";
+import { useWorkspaceStore } from "../../stores/workspace";
+import type { SidebarKind } from "./ActivityBar";
 
 interface SidebarContainerProps {
   // 表示するパネル種別
@@ -21,6 +22,8 @@ const SidebarContainer: React.FC<SidebarContainerProps> = ({
   isVisible,
   width,
 }) => {
+  const { currentWorkspace, openWorkspaceDialog } = useWorkspaceStore();
+
   return (
     <div
       className="sidebar-container"
@@ -38,7 +41,6 @@ const SidebarContainer: React.FC<SidebarContainerProps> = ({
         transition: "width 0.15s ease",
       }}
     >
-      {/* パネルの中身は後続フェーズで実装 */}
       {isVisible && (
         <div
           style={{
@@ -47,7 +49,10 @@ const SidebarContainer: React.FC<SidebarContainerProps> = ({
           }}
         >
           {activeSidebar === "explorer" && (
-            <div className="sidebar-panel" data-panel-type="explorer" />
+            <ExplorerPanel
+              workspacePath={currentWorkspace?.path ?? null}
+              onOpenWorkspace={openWorkspaceDialog}
+            />
           )}
           {activeSidebar === "search" && (
             <div
@@ -56,6 +61,15 @@ const SidebarContainer: React.FC<SidebarContainerProps> = ({
               style={{ height: "100%" }}
             >
               <SearchSidebar />
+            </div>
+          )}
+          {activeSidebar === "settings" && (
+            <div
+              className="sidebar-panel"
+              data-panel-type="settings"
+              style={{ height: "100%" }}
+            >
+              <SettingsPanel />
             </div>
           )}
         </div>

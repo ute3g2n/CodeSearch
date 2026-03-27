@@ -37,6 +37,8 @@ const Tab: React.FC<TabProps> = ({ tab, isActive, onClick, onClose, onContextMen
 
   return (
     <div
+      data-testid="tab"
+      data-title={tab.title}
       data-active={isActive ? "true" : "false"}
       onContextMenu={onContextMenu}
       style={{
@@ -71,6 +73,7 @@ const Tab: React.FC<TabProps> = ({ tab, isActive, onClick, onClose, onContextMen
 
       {/* 閉じるボタン */}
       <button
+        data-testid="tab-close-btn"
         aria-label="タブを閉じる"
         onClick={handleClose}
         style={{

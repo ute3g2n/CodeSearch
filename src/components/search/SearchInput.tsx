@@ -22,8 +22,10 @@ const ToggleButton: React.FC<{
   onClick: () => void;
   title: string;
   label: string;
-}> = ({ active, onClick, title, label }) => (
+  testId?: string;
+}> = ({ active, onClick, title, label, testId }) => (
   <button
+    data-testid={testId}
     title={title}
     aria-pressed={active}
     onClick={onClick}
@@ -88,6 +90,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     >
       <input
         ref={inputRef}
+        data-testid="search-input"
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -110,6 +113,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
           onClick={onToggleCaseSensitive}
           title="大文字と小文字を区別 (Alt+C)"
           label="Aa"
+          testId="toggle-case-sensitive"
         />
         <ToggleButton
           active={wholeWord}

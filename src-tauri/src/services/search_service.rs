@@ -50,6 +50,10 @@ pub struct IndexErrorPayload {
     pub message: String,
 }
 
+/// インデックス書き込みロック取得失敗イベント（他インスタンスが使用中）
+#[derive(Debug, Clone, Serialize)]
+pub struct IndexLockFailedPayload {}
+
 /// ファイルシステム変更イベント
 #[derive(Debug, Clone, Serialize)]
 pub struct FsChangedPayload {
@@ -124,6 +128,16 @@ impl SearchService {
 
         // IndexManager を開く（既存があれば再利用、なければ新規作成）
         let mut mgr = IndexManager::open_or_create(&self.data_dir, workspace_id)?;
+
+        // 書き込みロックが取得できなかった場合は読み取り専用モードで続行する
+        if !mgr.has_write_lock {
+            if let Some(handle) = app_handle {
+                let _ = handle.emit("index://lock-failed", IndexLockFailedPayload {});
+            }
+            self.index_manager = Some(mgr);
+            self.index_state = IndexState::Idle;
+            return Ok(0);
+        }
 
         let files = collect_text_files(Path::new(workspace_root));
         let total = files.len() as u64;
@@ -237,6 +251,17 @@ impl SearchService {
         self.index_manager.is_some()
     }
 
+    /// 書き込みロックが取得可能かどうかを確認する
+    ///
+    /// IndexManager を一時的に開いてロック状態を確認し、即座に解放する
+    /// ワークスペースオープン時に他インスタンスが使用中かどうかを返す
+    pub fn check_write_lock(&self, workspace_id: &str) -> bool {
+        match IndexManager::open_or_create(&self.data_dir, workspace_id) {
+            Ok(mgr) => mgr.has_write_lock,
+            Err(_) => false,
+        }
+    }
+
     /// 単一ファイルのインデックスを更新する（ファイル監視コールバック用）
     ///
     /// 既存ドキュメントを全削除してから全行を再登録する
@@ -290,65 +315,60 @@ impl SearchService {
         let app_handle_clone = app_handle.clone();
         std::thread::spawn(move || {
             let rt = tokio::runtime::Handle::current();
-            loop {
-                match rx.recv() {
-                    Ok(event) => {
-                        let file_path = event.path.to_string_lossy().to_string();
-                        let kind_str = match event.kind {
-                            WatchEventKind::Created | WatchEventKind::Modified => "modified",
-                            WatchEventKind::Deleted => "deleted",
-                        };
+            while let Ok(event) = rx.recv() {
+                let file_path = event.path.to_string_lossy().to_string();
+                let kind_str = match event.kind {
+                    WatchEventKind::Created | WatchEventKind::Modified => "modified",
+                    WatchEventKind::Deleted => "deleted",
+                };
 
-                        // fs://changed イベントを emit
-                        let _ = app_handle_clone.emit(
-                            "fs://changed",
-                            FsChangedPayload {
-                                kind: kind_str.to_string(),
-                                file_path: file_path.clone(),
-                            },
-                        );
+                // fs://changed イベントを emit
+                let _ = app_handle_clone.emit(
+                    "fs://changed",
+                    FsChangedPayload {
+                        kind: kind_str.to_string(),
+                        file_path: file_path.clone(),
+                    },
+                );
 
-                        // インデックスを非同期で更新
-                        let svc_clone = Arc::clone(&search_service);
-                        let path = event.path.clone();
-                        let app_handle_2 = app_handle_clone.clone();
-                        rt.spawn(async move {
-                            let mut svc = svc_clone.write().await;
-                            let result = match event.kind {
-                                WatchEventKind::Created | WatchEventKind::Modified => {
-                                    svc.update_file(&path)
-                                }
-                                WatchEventKind::Deleted => svc.remove_file(&path),
-                            };
+                // インデックスを非同期で更新
+                let svc_clone = Arc::clone(&search_service);
+                let path = event.path.clone();
+                let app_handle_2 = app_handle_clone.clone();
+                rt.spawn(async move {
+                    let mut svc = svc_clone.write().await;
+                    let result = match event.kind {
+                        WatchEventKind::Created | WatchEventKind::Modified => {
+                            svc.update_file(&path)
+                        }
+                        WatchEventKind::Deleted => svc.remove_file(&path),
+                    };
 
-                            match result {
-                                Ok(_) => {
-                                    let doc_count = svc
-                                        .index_manager
-                                        .as_ref()
-                                        .map(|m| m.doc_count())
-                                        .unwrap_or(0);
-                                    let _ = app_handle_2.emit(
-                                        "index://updated",
-                                        IndexUpdatedPayload {
-                                            file_path: path.to_string_lossy().to_string(),
-                                            doc_count,
-                                        },
-                                    );
-                                }
-                                Err(e) => {
-                                    let _ = app_handle_2.emit(
-                                        "index://error",
-                                        IndexErrorPayload {
-                                            message: e.to_string(),
-                                        },
-                                    );
-                                }
-                            }
-                        });
+                    match result {
+                        Ok(_) => {
+                            let doc_count = svc
+                                .index_manager
+                                .as_ref()
+                                .map(|m| m.doc_count())
+                                .unwrap_or(0);
+                            let _ = app_handle_2.emit(
+                                "index://updated",
+                                IndexUpdatedPayload {
+                                    file_path: path.to_string_lossy().to_string(),
+                                    doc_count,
+                                },
+                            );
+                        }
+                        Err(e) => {
+                            let _ = app_handle_2.emit(
+                                "index://error",
+                                IndexErrorPayload {
+                                    message: e.to_string(),
+                                },
+                            );
+                        }
                     }
-                    Err(_) => break, // チャネルが閉じられたら終了
-                }
+                });
             }
         });
 

@@ -34,11 +34,18 @@ pub async fn open_workspace(
         .open(&path)
         .map_err(CommandError::from)?;
 
+    // 書き込みロックが取得可能かどうか確認する（読み取り専用で取得しすぐ解放）
+    let has_index_write_lock = state
+        .search_service
+        .read()
+        .await
+        .check_write_lock(&workspace.id);
+
     Ok(WorkspaceInfo {
         workspace,
         index_status: IndexStatusKind::Empty,
         file_count: 0,
-        has_index_write_lock: false,
+        has_index_write_lock,
     })
 }
 

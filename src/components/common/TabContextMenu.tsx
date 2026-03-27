@@ -103,6 +103,17 @@ const TabContextMenu: React.FC<TabContextMenuProps> = ({
     }
   }, [position]);
 
+  // Escape キーでメニューを閉じる
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   // 付録B に準拠したメニュー項目を構築する
   const entries: MenuEntry[] = [
     {

@@ -35,6 +35,7 @@ const Toast: React.FC<ToastProps> = ({ notification }) => {
 
   return (
     <div
+      data-testid="toast"
       role="alert"
       aria-live="polite"
       style={{

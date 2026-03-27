@@ -7,6 +7,7 @@ import {
   onIndexError,
   onWatcherError,
   onIndexUpdated,
+  onIndexLockFailed,
 } from "../ipc/events";
 import { useNotificationStore } from "../stores/notification";
 import { useSearchStore } from "../stores/search";
@@ -85,6 +86,16 @@ export function useIndexEvents(): void {
         kind: "warning",
         title: "ファイル監視エラー",
         message: payload.message,
+        autoCloseMs: 6000,
+      });
+    }).then((fn) => unlisteners.push(fn));
+
+    // index://lock-failed — 他インスタンスがインデックスを使用中
+    onIndexLockFailed(() => {
+      add({
+        kind: "warning",
+        title: "読み取り専用モード",
+        message: "別のインスタンスがインデックスを使用中です。検索のみ利用できます。",
         autoCloseMs: 6000,
       });
     }).then((fn) => unlisteners.push(fn));

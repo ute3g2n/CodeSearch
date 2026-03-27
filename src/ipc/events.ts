@@ -83,3 +83,10 @@ export function onWatcherError(
     handler(e.payload)
   );
 }
+
+/** index://lock-failed イベント（他インスタンスがインデックスを使用中） */
+export function onIndexLockFailed(
+  handler: () => void
+): Promise<UnlistenFn> {
+  return listen("index://lock-failed", () => handler());
+}

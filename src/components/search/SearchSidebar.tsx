@@ -3,6 +3,8 @@
 // 各セクションは開閉可能
 import React, { useState } from "react";
 import SearchSection from "./SearchSection";
+import BookmarkSection from "./BookmarkSection";
+import HighlightSection from "./HighlightSection";
 
 // セクション種別
 type SectionKind = "search" | "bookmark" | "highlight";
@@ -41,7 +43,7 @@ const SectionToggle: React.FC<{
 // 検索サイドバー本体
 const SearchSidebar: React.FC = () => {
   const [openSections, setOpenSections] = useState<Set<SectionKind>>(
-    new Set(["search"])
+    new Set(["search", "bookmark"])
   );
 
   const toggle = (section: SectionKind) => {
@@ -86,41 +88,27 @@ const SearchSidebar: React.FC = () => {
         </div>
       )}
 
-      {/* ===== ブックマークセクション（スタブ） ===== */}
+      {/* ===== ブックマークセクション ===== */}
       <SectionToggle
         label="ブックマーク"
         isOpen={openSections.has("bookmark")}
         onToggle={() => toggle("bookmark")}
       />
       {openSections.has("bookmark") && (
-        <div
-          style={{
-            padding: "8px",
-            fontSize: "12px",
-            color: "var(--color-sidebar-fg, #cccccc)",
-            opacity: 0.5,
-          }}
-        >
-          ブックマーク機能は後続フェーズで実装
+        <div style={{ maxHeight: "300px", overflow: "auto" }}>
+          <BookmarkSection />
         </div>
       )}
 
-      {/* ===== ハイライトセクション（スタブ） ===== */}
+      {/* ===== ハイライトセクション ===== */}
       <SectionToggle
         label="ハイライト"
         isOpen={openSections.has("highlight")}
         onToggle={() => toggle("highlight")}
       />
       {openSections.has("highlight") && (
-        <div
-          style={{
-            padding: "8px",
-            fontSize: "12px",
-            color: "var(--color-sidebar-fg, #cccccc)",
-            opacity: 0.5,
-          }}
-        >
-          ハイライト機能は後続フェーズで実装
+        <div style={{ maxHeight: "200px", overflow: "auto" }}>
+          <HighlightSection />
         </div>
       )}
     </div>

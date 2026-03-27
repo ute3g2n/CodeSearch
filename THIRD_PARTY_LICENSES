@@ -1,0 +1,125 @@
+CodeSearch Third-Party Licenses
+================================
+
+This software includes third-party components with the following licenses.
+
+=============================================================================
+Frontend Dependencies
+=============================================================================
+
+react (MIT)
+  Copyright (c) Meta Platforms, Inc. and affiliates.
+  https://github.com/facebook/react
+
+react-dom (MIT)
+  Copyright (c) Meta Platforms, Inc. and affiliates.
+  https://github.com/facebook/react
+
+react-virtuoso (MIT)
+  Copyright (c) 2019 Petyo Ivanov
+  https://github.com/petyosi/react-virtuoso
+
+zustand (MIT)
+  Copyright (c) 2019 Paul Henschel
+  https://github.com/pmndrs/zustand
+
+i18next (MIT)
+  Copyright (c) 2022 i18next
+  https://github.com/i18next/i18next
+
+react-i18next (MIT)
+  Copyright (c) 2022 i18next
+  https://github.com/i18next/react-i18next
+
+vscode-textmate (MIT)
+  Copyright (c) Microsoft Corporation
+  https://github.com/microsoft/vscode-textmate
+
+vscode-oniguruma (MIT)
+  Copyright (c) Microsoft Corporation
+  https://github.com/microsoft/vscode-oniguruma
+
+@tauri-apps/api (MIT OR Apache-2.0)
+  Copyright (c) 2019-2024 Tauri Programme within The Commons Conservancy
+  https://github.com/tauri-apps/tauri
+
+@tauri-apps/plugin-dialog (MIT OR Apache-2.0)
+  Copyright (c) 2019-2024 Tauri Programme within The Commons Conservancy
+  https://github.com/tauri-apps/plugins-workspace
+
+@tauri-apps/plugin-opener (MIT OR Apache-2.0)
+  Copyright (c) 2019-2024 Tauri Programme within The Commons Conservancy
+  https://github.com/tauri-apps/plugins-workspace
+
+=============================================================================
+Backend (Rust) Dependencies
+=============================================================================
+
+tauri (MIT OR Apache-2.0)
+  Copyright (c) 2019-2024 Tauri Programme within The Commons Conservancy
+  https://github.com/tauri-apps/tauri
+
+tantivy (MIT)
+  Copyright (c) 2018 Paul Masurel
+  https://github.com/quickwit-oss/tantivy
+
+tokio (MIT)
+  Copyright (c) 2023 Tokio Contributors
+  https://github.com/tokio-rs/tokio
+
+serde (MIT OR Apache-2.0)
+  Copyright (c) 2014+ Erick Tryzelaar and David Tolnay
+  https://github.com/serde-rs/serde
+
+rusqlite (MIT)
+  Copyright (c) 2014-2020 The rusqlite developers
+  https://github.com/rusqlite/rusqlite
+
+notify (CC0-1.0 OR Artistic-2.0 OR MIT)
+  Copyright (c) 2015 Nathan Fain
+  https://github.com/notify-rs/notify
+
+regex (MIT OR Apache-2.0)
+  Copyright (c) 2014 The Rust Project Developers
+  https://github.com/rust-lang/regex
+
+encoding_rs (MIT OR Apache-2.0)
+  Copyright (c) 2015-2016 Mozilla Foundation
+  https://github.com/nicowillis/encoding_rs
+
+chardetng (Apache-2.0)
+  Copyright (c) 2019 Mozilla Foundation
+  https://github.com/hsivonen/chardetng
+
+fs2 (MIT OR Apache-2.0)
+  Copyright (c) 2015 Dan Burkert
+  https://github.com/nicowillis/fs2
+
+chrono (MIT OR Apache-2.0)
+  Copyright (c) 2014, Kang Seonghoon and contributors
+  https://github.com/chronotope/chrono
+
+glob (MIT OR Apache-2.0)
+  Copyright (c) 2014 The Rust Project Developers
+  https://github.com/rust-lang/glob
+
+sha2 (MIT OR Apache-2.0)
+  Copyright (c) 2006-2009 Graydon Hoare and contributors
+  https://github.com/RustCrypto/hashes
+
+thiserror (MIT OR Apache-2.0)
+  Copyright (c) 2019 David Tolnay
+  https://github.com/dtolnay/thiserror
+
+dirs-next (MIT OR Apache-2.0)
+  https://github.com/xdg-rs/dirs
+
+tracing (MIT)
+  Copyright (c) 2019 Tokio Contributors
+  https://github.com/tokio-rs/tracing
+
+=============================================================================
+Full license texts for MIT, Apache-2.0 are available at:
+  https://opensource.org/licenses/MIT
+  https://www.apache.org/licenses/LICENSE-2.0
+=============================================================================

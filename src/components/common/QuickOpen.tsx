@@ -89,6 +89,18 @@ const QuickOpen: React.FC<QuickOpenProps> = ({ isOpen, onClose }) => {
     }
   }, [isOpen]);
 
+  // Escape でダイアログを閉じる（入力フォーカスに依存しないグローバルリスナー）
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   // デバウンス後のクエリで検索
   useEffect(() => {
     if (!isOpen) return;
@@ -160,6 +172,7 @@ const QuickOpen: React.FC<QuickOpenProps> = ({ isOpen, onClose }) => {
     >
       {/* ダイアログ本体 */}
       <div
+        data-testid="quick-open"
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "500px",

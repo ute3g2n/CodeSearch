@@ -38,7 +38,7 @@ const BookmarkSection: React.FC = () => {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div data-testid="bookmark-section" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* セクションヘッダー */}
       <div
         style={{
@@ -94,6 +94,7 @@ const BookmarkSection: React.FC = () => {
       <div style={{ flex: 1, overflow: "auto" }}>
         {sortedGroups.length === 0 ? (
           <div
+            data-testid="bookmark-empty"
             style={{
               padding: "16px 8px",
               fontSize: "12px",

@@ -1,32 +1,37 @@
 // E2E シナリオ7: キーボードショートカット
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test.describe("キーボードショートカット", () => {
-  test("Ctrl+Shift+F で検索フォーカスが移動すること", async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+  });
+
+  test("Ctrl+Shift+F で検索サイドバーにフォーカスが移動すること", async ({ page }) => {
     await page.keyboard.press("Control+Shift+F");
-    await expect(page.locator('[data-testid="search-input"]')).toBeFocused({
+    // 検索パネルが表示され入力欄が見える
+    await expect(page.locator('[data-testid="search-input"]')).toBeVisible({
       timeout: 3_000,
     });
   });
 
-  test("Ctrl+P でクイックオープンが起動すること", async ({ page }) => {
+  test("Ctrl+P でクイックオープンが表示されること", async ({ page }) => {
     await page.keyboard.press("Control+p");
     await expect(page.locator('[data-testid="quick-open"]')).toBeVisible({
       timeout: 3_000,
     });
+  });
+
+  test("Ctrl+P 後に Escape でクイックオープンが閉じること", async ({ page }) => {
+    await page.keyboard.press("Control+p");
+    await expect(page.locator('[data-testid="quick-open"]')).toBeVisible();
     await page.keyboard.press("Escape");
+    await expect(page.locator('[data-testid="quick-open"]')).not.toBeVisible();
   });
 
   test("Ctrl+W でアクティブタブが閉じること", async ({ page }) => {
-    const tabsBefore = await page
-      .locator('[data-testid="tab-bar"] [data-testid="tab"]')
-      .count();
-    if (tabsBefore > 0) {
-      await page.keyboard.press("Control+w");
-      const tabsAfter = await page
-        .locator('[data-testid="tab-bar"] [data-testid="tab"]')
-        .count();
-      expect(tabsAfter).toBeLessThanOrEqual(tabsBefore);
-    }
+    // ウェルカムタブが1枚あることを確認
+    await expect(page.locator('[data-testid="tab"]')).toHaveCount(1);
+    await page.keyboard.press("Control+w");
+    await expect(page.locator('[data-testid="tab"]')).toHaveCount(0);
   });
 });

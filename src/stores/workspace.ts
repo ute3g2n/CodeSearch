@@ -12,6 +12,7 @@ import {
 } from "../ipc/commands";
 import { useBookmarkStore } from "./bookmark";
 import { useSearchStore } from "./search";
+import { useEditorStore } from "./editor";
 
 interface WorkspaceState {
   /** 現在開いているワークスペース（null = 未選択） */
@@ -62,6 +63,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         errorMessage: null,
       },
     });
+
+    // ウェルカムタブを自動クローズする
+    const editorState = useEditorStore.getState();
+    for (const g of editorState.groups) {
+      for (const t of g.tabs) {
+        if (t.kind === "welcome") {
+          editorState.closeTab(g.id, t.id);
+        }
+      }
+    }
 
     // ブックマーク一覧を読み込む
     await useBookmarkStore.getState().loadBookmarks(info.workspace.id);

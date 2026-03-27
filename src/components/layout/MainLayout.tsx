@@ -1,14 +1,11 @@
 import React, { useState } from "react";
 import ActivityBar from "./ActivityBar";
+import type { SidebarKind } from "./ActivityBar";
 import SidebarContainer from "./SidebarContainer";
 import EditorArea from "./EditorArea";
 
-// サイドバー種別
-type SidebarKind = "explorer" | "search";
-
 // MainLayout コンポーネント
 // ActivityBar + SidebarContainer + EditorArea の3カラムレイアウト
-// サイドバー幅はドラッグリサイズ対応（後続フェーズで実装）
 const MainLayout: React.FC = () => {
   // サイドバー幅（px）
   const [sidebarWidth, setSidebarWidth] = useState<number>(300);
@@ -21,10 +18,8 @@ const MainLayout: React.FC = () => {
   // 同じアイコンを再クリックするとサイドバーを閉じる
   const handleToggle = (sidebar: SidebarKind) => {
     if (activeSidebar === sidebar) {
-      // 同じアイコン → 開閉トグル
       setIsSidebarVisible((prev) => !prev);
     } else {
-      // 別のアイコン → 切り替えて表示
       setActiveSidebar(sidebar);
       setIsSidebarVisible(true);
     }
@@ -49,7 +44,7 @@ const MainLayout: React.FC = () => {
         onToggle={handleToggle}
       />
 
-      {/* サイドバー（エクスプローラー or 検索） */}
+      {/* サイドバー（エクスプローラー / 検索 / 設定） */}
       <SidebarContainer
         activeSidebar={activeSidebar}
         isVisible={isSidebarVisible}

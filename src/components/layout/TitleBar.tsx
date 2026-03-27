@@ -7,6 +7,7 @@ const TitleBar: React.FC = () => {
   return (
     <div
       className="title-bar"
+      data-testid="title-bar"
       data-tauri-drag-region
       style={{
         height: "var(--title-bar-height)",

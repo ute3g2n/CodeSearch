@@ -1,23 +1,24 @@
-// E2E シナリオ6: ブックマーク操作
-import { test, expect } from "@playwright/test";
+// E2E シナリオ6: ブックマーク表示
+import { test, expect } from "./fixtures";
 
 test.describe("ブックマーク", () => {
-  test("ブックマークサイドバーに切り替えられること", async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    // 検索サイドバーへ切り替える（BookmarkSection が含まれている）
     await page.click('[data-testid="activity-search"]');
-    // ブックマークセクションが表示される
-    await expect(
-      page.locator('[data-testid="bookmark-section"]')
-    ).toBeVisible();
   });
 
-  test("ブックマークが空の場合にメッセージが表示されること", async ({ page }) => {
-    await page.click('[data-testid="activity-search"]');
-    const section = page.locator('[data-testid="bookmark-section"]');
-    const isEmpty = await section.locator('[data-testid="bookmark-empty"]').isVisible();
-    if (isEmpty) {
-      await expect(section.locator('[data-testid="bookmark-empty"]')).toContainText(
-        "ブックマークはありません"
-      );
-    }
+  test("ブックマークセクションが表示されること", async ({ page }) => {
+    await expect(page.locator('[data-testid="bookmark-section"]')).toBeVisible();
+  });
+
+  test("ブックマークが空の場合に「ブックマークはありません」が表示されること", async ({
+    page,
+  }) => {
+    // モックは空の配列を返すので必ず表示される
+    await expect(page.locator('[data-testid="bookmark-empty"]')).toBeVisible();
+    await expect(page.locator('[data-testid="bookmark-empty"]')).toContainText(
+      "ブックマークはありません"
+    );
   });
 });

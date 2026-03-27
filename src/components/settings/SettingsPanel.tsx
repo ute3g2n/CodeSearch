@@ -30,12 +30,14 @@ const SettingRow: React.FC<{
   onChange: (v: string) => void;
   min?: number;
   max?: number;
-}> = ({ label, type = "text", value, onChange, min, max }) => (
+  testId?: string;
+}> = ({ label, type = "text", value, onChange, min, max, testId }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: "3px", marginBottom: "8px" }}>
     <label style={{ fontSize: "12px", color: "var(--color-sidebar-fg, #cccccc)" }}>
       {label}
     </label>
     <input
+      data-testid={testId}
       type={type}
       value={value}
       min={min}
@@ -108,6 +110,7 @@ const SettingsPanel: React.FC = () => {
 
   return (
     <div
+      data-testid="settings-panel"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -146,6 +149,7 @@ const SettingsPanel: React.FC = () => {
         onChange={(v) =>
           setDraft((d) => ({ ...d, editorFontSize: Number(v) || d.editorFontSize }))
         }
+        testId="editor-font-size"
       />
 
       {/* UIセクション */}
@@ -178,6 +182,7 @@ const SettingsPanel: React.FC = () => {
       <SectionHeader label={t("settings.language")} />
       <div style={{ marginBottom: "8px" }}>
         <select
+          data-testid="language-select"
           value={draft.language}
           onChange={(e) => setDraft((d) => ({ ...d, language: e.target.value }))}
           style={{
@@ -229,6 +234,7 @@ const SettingsPanel: React.FC = () => {
 
       {/* 保存ボタン */}
       <button
+        data-testid="settings-save-btn"
         onClick={handleSave}
         style={{
           background: "var(--color-accent, #007acc)",

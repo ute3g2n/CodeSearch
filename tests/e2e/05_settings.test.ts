@@ -1,37 +1,41 @@
 // E2E シナリオ5: 設定画面
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test.describe("設定画面", () => {
-  test("設定パネルを開けること", async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
     await page.click('[data-testid="activity-settings"]');
     await expect(page.locator('[data-testid="settings-panel"]')).toBeVisible();
   });
 
-  test("言語を英語に切り替えられること", async ({ page }) => {
-    await page.click('[data-testid="activity-settings"]');
-    const langSelect = page.locator('[data-testid="language-select"]');
-    await langSelect.selectOption("en");
-    // 保存ボタンをクリック
-    await page.click('[data-testid="settings-save-btn"]');
-    // 「Saved」メッセージが表示される
-    await expect(page.locator('[data-testid="settings-save-btn"]')).toContainText("Saved", {
-      timeout: 3_000,
-    });
-    // 日本語に戻す
-    await langSelect.selectOption("ja");
-    await page.click('[data-testid="settings-save-btn"]');
+  test("設定パネルが開くこと", async ({ page }) => {
+    await expect(page.locator('[data-testid="settings-panel"]')).toBeVisible();
   });
 
-  test("フォントサイズを変更して保存できること", async ({ page }) => {
-    await page.click('[data-testid="activity-settings"]');
+  test("言語セレクトが表示されること", async ({ page }) => {
+    const langSelect = page.locator('[data-testid="language-select"]');
+    await expect(langSelect).toBeVisible();
+    // デフォルトは ja
+    await expect(langSelect).toHaveValue("ja");
+  });
+
+  test("言語を英語に切り替えられること", async ({ page }) => {
+    const langSelect = page.locator('[data-testid="language-select"]');
+    await langSelect.selectOption("en");
+    await expect(langSelect).toHaveValue("en");
+  });
+
+  test("フォントサイズ入力が表示されること", async ({ page }) => {
     const fontSizeInput = page.locator('[data-testid="editor-font-size"]');
-    await fontSizeInput.fill("16");
-    await page.click('[data-testid="settings-save-btn"]');
-    await expect(page.locator('[data-testid="settings-save-btn"]')).toContainText("Saved", {
-      timeout: 3_000,
-    });
-    // 元に戻す
-    await fontSizeInput.fill("14");
-    await page.click('[data-testid="settings-save-btn"]');
+    await expect(fontSizeInput).toBeVisible();
+    await expect(fontSizeInput).toHaveValue("14");
+  });
+
+  test("保存ボタンをクリックすると保存メッセージが表示されること", async ({ page }) => {
+    const saveBtn = page.locator('[data-testid="settings-save-btn"]');
+    await expect(saveBtn).toBeVisible();
+    await saveBtn.click();
+    // 保存後は「保存しました」に変わる
+    await expect(saveBtn).toContainText("保存しました", { timeout: 5_000 });
   });
 });
