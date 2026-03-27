@@ -1,13 +1,28 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import TitleBar from "./components/layout/TitleBar";
 import MainLayout from "./components/layout/MainLayout";
 import StatusBar from "./components/layout/StatusBar";
+import QuickOpen from "./components/common/QuickOpen";
 import "./theme/global.css";
 
 // アプリケーションルートコンポーネント
 // レイアウト: TitleBar / MainLayout / StatusBar の縦積み
-// 後続フェーズで QuickOpen・ContextMenu 等を追加する
+// QuickOpen (Ctrl+P) を管理する
 const App: React.FC = () => {
+  const [quickOpenVisible, setQuickOpenVisible] = useState(false);
+
+  // Ctrl+P でクイックオープンを開く
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "p") {
+        e.preventDefault();
+        setQuickOpenVisible(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
     <div
       style={{
@@ -21,6 +36,10 @@ const App: React.FC = () => {
       <TitleBar />
       <MainLayout />
       <StatusBar />
+      <QuickOpen
+        isOpen={quickOpenVisible}
+        onClose={() => setQuickOpenVisible(false)}
+      />
     </div>
   );
 };
