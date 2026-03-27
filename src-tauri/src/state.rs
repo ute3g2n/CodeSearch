@@ -9,7 +9,7 @@ use crate::services::{
     workspace_service::WorkspaceService,
 };
 use crate::storage::database::Database;
-use crate::watcher::file_watcher::FileWatcher;
+use crate::watcher::file_watcher::FileWatcher as FileWatcherHandle;
 
 /// アプリケーション全体の共有状態
 /// 基本設計書セクション3.2に基づく
@@ -28,7 +28,7 @@ pub struct AppState {
     pub config_service: Arc<RwLock<ConfigService>>,
 
     /// ファイル監視（ワークスペース切替時に差し替え）
-    pub file_watcher: Arc<Mutex<Option<FileWatcher>>>,
+    pub file_watcher: Arc<Mutex<Option<FileWatcherHandle>>>,
 
     /// SQLite データベース（WALモード + busy_timeout=5000ms）
     pub database: Arc<Database>,

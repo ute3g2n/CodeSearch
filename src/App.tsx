@@ -3,6 +3,8 @@ import TitleBar from "./components/layout/TitleBar";
 import MainLayout from "./components/layout/MainLayout";
 import StatusBar from "./components/layout/StatusBar";
 import QuickOpen from "./components/common/QuickOpen";
+import ToastContainer from "./components/common/ToastContainer";
+import { useIndexEvents } from "./hooks/useIndexEvents";
 import "./theme/global.css";
 
 // アプリケーションルートコンポーネント
@@ -10,6 +12,9 @@ import "./theme/global.css";
 // QuickOpen (Ctrl+P) を管理する
 const App: React.FC = () => {
   const [quickOpenVisible, setQuickOpenVisible] = useState(false);
+
+  // インデックス関連イベントをリッスンしてトーストに表示する
+  useIndexEvents();
 
   // Ctrl+P でクイックオープンを開く
   useEffect(() => {
@@ -40,6 +45,7 @@ const App: React.FC = () => {
         isOpen={quickOpenVisible}
         onClose={() => setQuickOpenVisible(false)}
       />
+      <ToastContainer />
     </div>
   );
 };

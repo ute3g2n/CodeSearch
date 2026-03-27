@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import type { FileNode } from "../../ipc/types";
 import { getFileTree } from "../../ipc/commands";
+import { onFsChanged } from "../../ipc/events";
 import TreeNode from "./TreeNode";
 
 interface ExplorerPanelProps {
@@ -13,20 +14,25 @@ interface ExplorerPanelProps {
 // エクスプローラーパネルコンポーネント
 // - ワークスペース未選択: 「フォルダーを開く」ボタンを表示
 // - ワークスペース選択済: ファイルツリーを表示（遅延ロード）
+// - fs://changed イベントでツリーを差分更新する
 const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
   workspacePath,
   onOpenWorkspace,
 }) => {
-  // ルートレベルのツリーデータ
   const [tree, setTree] = useState<FileNode[]>([]);
-  // 読み込み中フラグ
   const [isLoading, setIsLoading] = useState(false);
-  // 展開中ディレクトリのパスセット
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
-  // 展開済みディレクトリの子ノードキャッシュ
   const [childrenCache, setChildrenCache] = useState<
     Record<string, FileNode[]>
   >({});
+
+  // ルートツリーを再読み込みする関数
+  const reloadTree = useCallback(() => {
+    if (!workspacePath) return;
+    getFileTree(workspacePath, 1)
+      .then((nodes) => setTree(nodes))
+      .catch(() => setTree([]));
+  }, [workspacePath]);
 
   // ワークスペースが変わったらツリーを再読み込み
   useEffect(() => {
@@ -39,47 +45,71 @@ const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
 
     setIsLoading(true);
     getFileTree(workspacePath, 1)
-      .then((nodes) => {
-        setTree(nodes);
-      })
-      .catch((_err) => {
-        setTree([]);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+      .then((nodes) => setTree(nodes))
+      .catch(() => setTree([]))
+      .finally(() => setIsLoading(false));
   }, [workspacePath]);
+
+  // fs://changed イベントでツリーを差分更新する
+  useEffect(() => {
+    if (!workspacePath) return;
+
+    let unlisten: (() => void) | null = null;
+
+    onFsChanged((payload) => {
+      // 変更ファイルの親ディレクトリのキャッシュを無効化して再取得
+      const changedPath = payload.filePath;
+      const parentDir = changedPath.substring(
+        0,
+        Math.max(changedPath.lastIndexOf("/"), changedPath.lastIndexOf("\\"))
+      );
+
+      // キャッシュを削除して再ロードさせる
+      setChildrenCache((prev) => {
+        const next = { ...prev };
+        delete next[parentDir];
+        return next;
+      });
+
+      // ルートの子ノードが変わった場合はルートを再読み込み
+      if (parentDir === workspacePath) {
+        reloadTree();
+      }
+    }).then((fn) => {
+      unlisten = fn;
+    });
+
+    return () => {
+      unlisten?.();
+    };
+  }, [workspacePath, reloadTree]);
 
   // フォルダ展開/折りたたみ
   const handleToggle = async (path: string) => {
     const isExpanded = expandedDirs.has(path);
 
     if (isExpanded) {
-      // 折りたたみ
       setExpandedDirs((prev) => {
         const next = new Set(prev);
         next.delete(path);
         return next;
       });
     } else {
-      // 展開: 子ノードをキャッシュから取得 or バックエンドから取得
       setExpandedDirs((prev) => new Set([...prev, path]));
-
       if (!childrenCache[path]) {
         try {
           const children = await getFileTree(path, 1);
           setChildrenCache((prev) => ({ ...prev, [path]: children }));
-        } catch (_err) {
-          // エラー時は空リストとして扱う
+        } catch {
           setChildrenCache((prev) => ({ ...prev, [path]: [] }));
         }
       }
     }
   };
 
-  // ファイルクリック（後続フェーズで EditorStore と連携）
+  // ファイルクリック（EditorStore と連携）
   const handleFileClick = (_path: string) => {
-    // TODO: EditorStore.openFile(path)
+    // TODO: EditorStore.openFile(path) — 後続フェーズで連携
   };
 
   // ノードを再帰描画する
@@ -96,13 +126,13 @@ const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
           onToggle={handleToggle}
           onClick={handleFileClick}
         />
-        {/* 展開中のディレクトリの子ノードを再帰描画 */}
-        {node.isDir && isExpanded && children.map((child) => renderNode(child, depth + 1))}
+        {node.isDir &&
+          isExpanded &&
+          children.map((child) => renderNode(child, depth + 1))}
       </React.Fragment>
     );
   };
 
-  // ワークスペース未選択時
   if (!workspacePath) {
     return (
       <div
@@ -136,19 +166,13 @@ const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
     );
   }
 
-  // ワークスペース選択済み: ファイルツリー表示
   return (
     <div
       data-testid="file-tree"
-      style={{
-        height: "100%",
-        overflow: "auto",
-      }}
+      style={{ height: "100%", overflow: "auto" }}
     >
       {isLoading ? (
-        <div
-          style={{ padding: "8px", fontSize: "12px", opacity: 0.6 }}
-        >
+        <div style={{ padding: "8px", fontSize: "12px", opacity: 0.6 }}>
           読み込み中...
         </div>
       ) : (

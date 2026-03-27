@@ -2,11 +2,15 @@
 ///
 /// - IndexManager の生成・保持
 /// - インデックス構築（ファイルツリー走査 → index_file）
+/// - インクリメンタル更新（update_file / remove_file）
+/// - ファイル監視連携（start_watcher）
 /// - 検索実行（Searcher 委譲）
 /// - 検索履歴の記録（HistoryRepo 委譲）
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Instant;
+
+use serde::Serialize;
 
 use crate::errors::AppError;
 use crate::indexer::index_manager::IndexManager;
@@ -14,6 +18,50 @@ use crate::indexer::searcher::Searcher;
 use crate::models::search::{IndexState, IndexStatus, SearchOptions, SearchResult};
 use crate::storage::database::Database;
 use crate::storage::history_repo::{HistoryRepo, NewHistoryEntry};
+use crate::watcher::file_watcher::{FileWatcher, WatchEvent, WatchEventKind};
+
+// ===== Tauri イベントペイロード =====
+
+/// インデックス更新完了イベント
+#[derive(Debug, Clone, Serialize)]
+pub struct IndexUpdatedPayload {
+    pub file_path: String,
+    pub doc_count: u64,
+}
+
+/// インデックス構築進捗イベント
+#[derive(Debug, Clone, Serialize)]
+pub struct IndexProgressPayload {
+    pub current: u64,
+    pub total: u64,
+    pub message: String,
+}
+
+/// インデックス構築完了イベント
+#[derive(Debug, Clone, Serialize)]
+pub struct IndexReadyPayload {
+    pub doc_count: u64,
+    pub elapsed_ms: u64,
+}
+
+/// インデックスエラーイベント
+#[derive(Debug, Clone, Serialize)]
+pub struct IndexErrorPayload {
+    pub message: String,
+}
+
+/// ファイルシステム変更イベント
+#[derive(Debug, Clone, Serialize)]
+pub struct FsChangedPayload {
+    pub kind: String,
+    pub file_path: String,
+}
+
+/// ファイル監視エラーイベント
+#[derive(Debug, Clone, Serialize)]
+pub struct WatcherErrorPayload {
+    pub message: String,
+}
 
 /// 検索サービス
 pub struct SearchService {
@@ -49,35 +97,74 @@ impl SearchService {
     /// 1. ワークスペース以下のテキストファイルを列挙
     /// 2. 各ファイルを読み込んで index_file
     /// 3. commit
+    /// 4. 進捗 emit（app_handle が Some の場合）
     pub fn build_index(
         &mut self,
         workspace_root: &str,
         workspace_id: &str,
     ) -> Result<u64, AppError> {
+        self.build_index_with_handle(workspace_root, workspace_id, None)
+    }
+
+    /// app_handle を受け取ってインデックス構築し、進捗をイベントで emit する
+    pub fn build_index_with_handle(
+        &mut self,
+        workspace_root: &str,
+        workspace_id: &str,
+        app_handle: Option<&tauri::AppHandle>,
+    ) -> Result<u64, AppError> {
+        use tauri::Emitter;
+        use std::time::Instant as StdInstant;
+
         self.index_state = IndexState::Building;
         self.workspace_id = Some(workspace_id.to_string());
         self.workspace_root = Some(PathBuf::from(workspace_root));
+
+        let start = StdInstant::now();
 
         // IndexManager を開く（既存があれば再利用、なければ新規作成）
         let mut mgr = IndexManager::open_or_create(&self.data_dir, workspace_id)?;
 
         let files = collect_text_files(Path::new(workspace_root));
-        let total = files.len();
+        let total = files.len() as u64;
 
-        for file_path in &files {
+        for (i, file_path) in files.iter().enumerate() {
             let path_str = file_path.to_string_lossy().to_string();
             let lines = read_lines(file_path)?;
             // 既存ドキュメントを削除してから再登録（重複防止）
             mgr.delete_file_docs(&path_str)?;
             mgr.index_file(&path_str, &lines)?;
+
+            // 100ファイルごとに進捗を emit
+            if let Some(handle) = app_handle {
+                if i % 100 == 0 {
+                    let _ = handle.emit(
+                        "index://progress",
+                        IndexProgressPayload {
+                            current: i as u64,
+                            total,
+                            message: format!("インデックス構築中... {}/{}", i, total),
+                        },
+                    );
+                }
+            }
         }
 
         mgr.commit()?;
         let doc_count = mgr.doc_count();
+        let elapsed_ms = start.elapsed().as_millis() as u64;
 
         self.index_manager = Some(mgr);
         self.index_state = IndexState::Ready;
         self.last_built_at = Some(chrono::Local::now().to_rfc3339());
+
+        // 完了イベントを emit
+        if let Some(handle) = app_handle {
+            let _ = handle.emit(
+                "index://ready",
+                IndexReadyPayload { doc_count, elapsed_ms },
+            );
+        }
 
         tracing::info!("インデックス構築完了: {} ファイル, {} ドキュメント", total, doc_count);
         Ok(doc_count)
@@ -148,6 +235,124 @@ impl SearchService {
     /// インデックスマネージャーが初期化済みかどうか
     pub fn is_ready(&self) -> bool {
         self.index_manager.is_some()
+    }
+
+    /// 単一ファイルのインデックスを更新する（ファイル監視コールバック用）
+    ///
+    /// 既存ドキュメントを全削除してから全行を再登録する
+    pub fn update_file(&mut self, file_path: &Path) -> Result<(), AppError> {
+        let mgr = self.index_manager.as_mut().ok_or(AppError::IndexError {
+            message: "インデックスが未構築です".to_string(),
+        })?;
+
+        let path_str = file_path.to_string_lossy().to_string();
+        let lines = read_lines(file_path)?;
+
+        mgr.delete_file_docs(&path_str)?;
+        mgr.index_file(&path_str, &lines)?;
+        mgr.commit()?;
+
+        tracing::debug!("ファイル更新: {}", path_str);
+        Ok(())
+    }
+
+    /// 単一ファイルをインデックスから削除する（ファイル監視コールバック用）
+    pub fn remove_file(&mut self, file_path: &Path) -> Result<(), AppError> {
+        let mgr = self.index_manager.as_mut().ok_or(AppError::IndexError {
+            message: "インデックスが未構築です".to_string(),
+        })?;
+
+        let path_str = file_path.to_string_lossy().to_string();
+        mgr.delete_file_docs(&path_str)?;
+        mgr.commit()?;
+
+        tracing::debug!("ファイル削除: {}", path_str);
+        Ok(())
+    }
+
+    /// ファイル監視を開始し、変更をインデックスに自動反映する
+    ///
+    /// Tauri イベントを emit してフロントエンドに通知する
+    pub fn start_watcher(
+        &self,
+        workspace_root: &Path,
+        exclude_patterns: Vec<String>,
+        search_service: Arc<tokio::sync::RwLock<SearchService>>,
+        app_handle: tauri::AppHandle,
+    ) -> Result<FileWatcher, AppError> {
+        use tauri::Emitter;
+
+        let (tx, rx) = std::sync::mpsc::channel::<WatchEvent>();
+
+        let watcher = FileWatcher::start(workspace_root, exclude_patterns, tx)?;
+
+        // バックグラウンドスレッドで監視イベントを処理する
+        let app_handle_clone = app_handle.clone();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Handle::current();
+            loop {
+                match rx.recv() {
+                    Ok(event) => {
+                        let file_path = event.path.to_string_lossy().to_string();
+                        let kind_str = match event.kind {
+                            WatchEventKind::Created | WatchEventKind::Modified => "modified",
+                            WatchEventKind::Deleted => "deleted",
+                        };
+
+                        // fs://changed イベントを emit
+                        let _ = app_handle_clone.emit(
+                            "fs://changed",
+                            FsChangedPayload {
+                                kind: kind_str.to_string(),
+                                file_path: file_path.clone(),
+                            },
+                        );
+
+                        // インデックスを非同期で更新
+                        let svc_clone = Arc::clone(&search_service);
+                        let path = event.path.clone();
+                        let app_handle_2 = app_handle_clone.clone();
+                        rt.spawn(async move {
+                            let mut svc = svc_clone.write().await;
+                            let result = match event.kind {
+                                WatchEventKind::Created | WatchEventKind::Modified => {
+                                    svc.update_file(&path)
+                                }
+                                WatchEventKind::Deleted => svc.remove_file(&path),
+                            };
+
+                            match result {
+                                Ok(_) => {
+                                    let doc_count = svc
+                                        .index_manager
+                                        .as_ref()
+                                        .map(|m| m.doc_count())
+                                        .unwrap_or(0);
+                                    let _ = app_handle_2.emit(
+                                        "index://updated",
+                                        IndexUpdatedPayload {
+                                            file_path: path.to_string_lossy().to_string(),
+                                            doc_count,
+                                        },
+                                    );
+                                }
+                                Err(e) => {
+                                    let _ = app_handle_2.emit(
+                                        "index://error",
+                                        IndexErrorPayload {
+                                            message: e.to_string(),
+                                        },
+                                    );
+                                }
+                            }
+                        });
+                    }
+                    Err(_) => break, // チャネルが閉じられたら終了
+                }
+            }
+        });
+
+        Ok(watcher)
     }
 }
 
@@ -287,6 +492,71 @@ mod tests {
         let status = svc.status();
         assert_eq!(svc.is_ready(), false);
         assert_eq!(status.document_count, 0);
+    }
+
+    #[test]
+    fn ファイル更新でインデックスが再構築されること() {
+        let (tmp, db) = setup();
+        let workspace = TempDir::new().unwrap();
+        write_file(workspace.path(), "update.rs", "old content line");
+
+        let mut svc = SearchService::new(tmp.path().to_path_buf());
+        svc.build_index(&workspace.path().to_string_lossy(), "ws_update")
+            .unwrap();
+
+        // 古い内容で検索できること
+        let opts = SearchOptions {
+            case_sensitive: false,
+            whole_word: false,
+            is_regex: false,
+            include_glob: None,
+            exclude_glob: None,
+            max_results: None,
+        };
+        let r1 = svc.search("old", &opts, &db).unwrap();
+        assert!(!r1.groups.is_empty());
+
+        // ファイルを更新してインデックスに反映
+        let file_path = workspace.path().join("update.rs");
+        std::fs::write(&file_path, "new content line").unwrap();
+        svc.update_file(&file_path).unwrap();
+
+        // 新しい内容で検索できること
+        let r2 = svc.search("new", &opts, &db).unwrap();
+        assert!(!r2.groups.is_empty());
+
+        // 古い内容は検索されないこと
+        let r3 = svc.search("old", &opts, &db).unwrap();
+        assert!(r3.groups.is_empty());
+    }
+
+    #[test]
+    fn ファイル削除でインデックスから消えること() {
+        let (tmp, db) = setup();
+        let workspace = TempDir::new().unwrap();
+        write_file(workspace.path(), "delete_me.rs", "fn to_delete() {}");
+
+        let mut svc = SearchService::new(tmp.path().to_path_buf());
+        svc.build_index(&workspace.path().to_string_lossy(), "ws_delete")
+            .unwrap();
+
+        let opts = SearchOptions {
+            case_sensitive: false,
+            whole_word: false,
+            is_regex: false,
+            include_glob: None,
+            exclude_glob: None,
+            max_results: None,
+        };
+
+        let r1 = svc.search("to_delete", &opts, &db).unwrap();
+        assert!(!r1.groups.is_empty());
+
+        let file_path = workspace.path().join("delete_me.rs");
+        svc.remove_file(&file_path).unwrap();
+
+        let r2 = svc.search("to_delete", &opts, &db).unwrap();
+        assert!(r2.groups.is_empty());
     }
 
     #[test]

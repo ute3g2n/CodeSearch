@@ -105,6 +105,16 @@ export async function buildIndex(
   return invokeCommand<number>("build_index", { workspaceRoot, workspaceId });
 }
 
+export async function startFileWatcher(
+  workspaceRoot: string,
+  excludePatterns: string[]
+): Promise<void> {
+  return invokeCommand<void>("start_file_watcher", {
+    workspaceRoot,
+    excludePatterns,
+  });
+}
+
 export async function getIndexStatus(): Promise<IndexStatus> {
   return invokeCommand<IndexStatus>("get_index_status");
 }

@@ -35,6 +35,7 @@ pub fn run() {
             commands::file::search_files,
             commands::search::search_fulltext,
             commands::search::build_index,
+            commands::search::start_file_watcher,
             commands::search::get_index_status,
             commands::search::get_search_history,
             commands::search::clear_search_history,
