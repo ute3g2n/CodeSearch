@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import ActivityBar from "./ActivityBar";
 import type { SidebarKind } from "./ActivityBar";
 import SidebarContainer from "./SidebarContainer";
@@ -14,6 +14,9 @@ const MainLayout: React.FC = () => {
   // アクティブなサイドバー種別
   const [activeSidebar, setActiveSidebar] = useState<SidebarKind>("explorer");
 
+  // ドラッグ中かどうかのフラグ
+  const isDraggingRef = useRef(false);
+
   // アクティビティバーのアイコンクリック時の処理
   // 同じアイコンを再クリックするとサイドバーを閉じる
   const handleToggle = (sidebar: SidebarKind) => {
@@ -25,8 +28,35 @@ const MainLayout: React.FC = () => {
     }
   };
 
-  // 未使用変数の警告を回避（後続フェーズでリサイズハンドルから使用）
-  void setSidebarWidth;
+  // リサイズハンドルのマウスダウン時の処理
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    // マウス移動でサイドバー幅を更新する
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const delta = moveEvent.clientX - startX;
+      const newWidth = Math.min(
+        Math.max(startWidth + delta, 150),
+        window.innerWidth * 0.5
+      );
+      setSidebarWidth(newWidth);
+    };
+
+    // マウスアップでドラッグを終了する
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  }, [sidebarWidth]);
 
   return (
     <div
@@ -50,6 +80,21 @@ const MainLayout: React.FC = () => {
         isVisible={isSidebarVisible}
         width={sidebarWidth}
       />
+
+      {/* リサイズハンドル（サイドバーが表示中のみ表示） */}
+      {isSidebarVisible && (
+        <div
+          data-testid="sidebar-resize-handle"
+          onMouseDown={handleResizeMouseDown}
+          style={{
+            width: "4px",
+            cursor: "col-resize",
+            backgroundColor: "var(--color-border, #3e3e3e)",
+            flexShrink: 0,
+            zIndex: 10,
+          }}
+        />
+      )}
 
       {/* エディタエリア（メインコンテンツ） */}
       <EditorArea />

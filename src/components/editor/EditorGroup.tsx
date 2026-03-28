@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useEditorStore } from "../../stores/editor";
 import TabBar from "./TabBar";
 import EditorContent from "./EditorContent";
@@ -22,12 +22,14 @@ const EditorGroup: React.FC<EditorGroupProps> = ({ group, isActive }) => {
   // 変更を検知したファイルパスのセット（再読み込みプロンプト表示用）
   const [modifiedFiles, setModifiedFiles] = useState<Set<string>>(new Set());
 
-  // 現在グループで開いているファイルパスのセット
+  // 現在グループで開いているファイルパスのセット（refで常に最新値を参照）
   const openFilePaths = new Set(
     group.tabs
       .filter((t) => t.kind === "file" && t.filePath)
       .map((t) => t.filePath!)
   );
+  const openFilePathsRef = useRef(openFilePaths);
+  openFilePathsRef.current = openFilePaths;
 
   // fs://changed イベントで開いているファイルの変更を検知する
   useEffect(() => {
@@ -36,7 +38,7 @@ const EditorGroup: React.FC<EditorGroupProps> = ({ group, isActive }) => {
     onFsChanged((payload) => {
       if (
         payload.kind !== "deleted" &&
-        openFilePaths.has(payload.filePath)
+        openFilePathsRef.current.has(payload.filePath)
       ) {
         setModifiedFiles((prev) => new Set([...prev, payload.filePath]));
       }
@@ -55,9 +57,7 @@ const EditorGroup: React.FC<EditorGroupProps> = ({ group, isActive }) => {
     return () => {
       unlisten?.();
     };
-    // openFilePaths の参照が毎レンダリングで変わるため deps から除外
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [group.id]);
+  }, [group.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 再読み込みプロンプト: アクティブタブが変更済みかどうか
   const activeFilePath =
@@ -112,6 +112,7 @@ const EditorGroup: React.FC<EditorGroupProps> = ({ group, isActive }) => {
       {/* ファイル変更通知バナー */}
       {showReloadPrompt && (
         <div
+          data-testid="reload-prompt"
           style={{
             display: "flex",
             alignItems: "center",
@@ -127,6 +128,7 @@ const EditorGroup: React.FC<EditorGroupProps> = ({ group, isActive }) => {
           <span>このファイルはディスク上で変更されました。</span>
           <div style={{ display: "flex", gap: "8px" }}>
             <button
+              data-testid="reload-button"
               onClick={handleReload}
               style={{
                 background: "var(--color-accent, #007acc)",
@@ -141,6 +143,7 @@ const EditorGroup: React.FC<EditorGroupProps> = ({ group, isActive }) => {
               再読み込み
             </button>
             <button
+              data-testid="reload-dismiss"
               onClick={handleDismiss}
               style={{
                 background: "transparent",

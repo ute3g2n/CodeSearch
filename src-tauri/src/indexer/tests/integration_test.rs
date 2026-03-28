@@ -181,6 +181,92 @@ mod tests {
     }
 
     #[test]
+    fn 単語単位マッチが正しく動作すること() {
+        let dir = TempDir::new().unwrap();
+        let mut files = HashMap::new();
+        // "hello" と "hello_world" を含む行が存在する
+        files.insert(
+            "/workspace/a.rs",
+            vec!["let hello = 1;", "let hello_world = 2;"],
+        );
+        let mgr = build_index_with_files(&dir, &files);
+
+        let searcher = Searcher::new(&mgr).unwrap();
+        let opts = SearchOptions {
+            whole_word: true,
+            ..default_opts()
+        };
+        let result = searcher.search("hello", &opts, "/workspace").unwrap();
+        assert!(!result.is_empty(), "whole_word 検索で結果が得られること");
+        // "hello_world" を含む行はマッチしないこと
+        let all_contents: Vec<&str> = result[0]
+            .matches
+            .iter()
+            .map(|m| m.line_content.as_str())
+            .collect();
+        assert!(
+            all_contents.iter().all(|c| !c.contains("hello_world")),
+            "hello_world 行はマッチしないこと: {:?}",
+            all_contents
+        );
+        assert!(
+            all_contents.iter().any(|c| c.contains("let hello =")),
+            "let hello = 行はマッチすること"
+        );
+    }
+
+    #[test]
+    fn globフィルタで特定拡張子だけを検索できること() {
+        let dir = TempDir::new().unwrap();
+        let mut files = HashMap::new();
+        files.insert("/workspace/main.rs", vec!["hello rust"]);
+        files.insert("/workspace/index.ts", vec!["hello typescript"]);
+        files.insert("/workspace/app.py", vec!["hello python"]);
+        let mgr = build_index_with_files(&dir, &files);
+
+        let searcher = Searcher::new(&mgr).unwrap();
+
+        // include_glob で *.rs だけを対象にする
+        let opts_inc = SearchOptions {
+            include_glob: Some("*.rs".to_string()),
+            ..default_opts()
+        };
+        let result_inc = searcher.search("hello", &opts_inc, "/workspace").unwrap();
+        assert_eq!(result_inc.len(), 1, "*.rs のみがマッチすること");
+        assert!(result_inc[0].file_path.ends_with(".rs"));
+
+        // exclude_glob で *.ts を除外する
+        let opts_exc = SearchOptions {
+            exclude_glob: Some("*.ts".to_string()),
+            ..default_opts()
+        };
+        let result_exc = searcher.search("hello", &opts_exc, "/workspace").unwrap();
+        assert!(
+            result_exc.iter().all(|g| !g.file_path.ends_with(".ts")),
+            "*.ts はマッチしないこと"
+        );
+        assert_eq!(result_exc.len(), 2, "*.rs と *.py がマッチすること");
+    }
+
+    #[test]
+    fn 不正な正規表現は空の結果を返すこと() {
+        let dir = TempDir::new().unwrap();
+        let mut files = HashMap::new();
+        files.insert("/workspace/a.rs", vec!["test content here"]);
+        let mgr = build_index_with_files(&dir, &files);
+
+        let searcher = Searcher::new(&mgr).unwrap();
+        let opts = SearchOptions {
+            is_regex: true,
+            ..default_opts()
+        };
+        // 不正な正規表現パターン（未閉じのカッコ）
+        let result = searcher.search("([invalid", &opts, "/workspace").unwrap();
+        // find_match_ranges で regex::Regex::new が失敗 → None → マッチなし
+        assert!(result.is_empty(), "不正な正規表現は空の結果を返すこと");
+    }
+
+    #[test]
     fn クエリが空の場合は空の結果を返すこと() {
         let dir = TempDir::new().unwrap();
         let mut files = HashMap::new();
@@ -190,6 +276,71 @@ mod tests {
         let searcher = Searcher::new(&mgr).unwrap();
         let result = searcher.search("", &default_opts(), "/workspace").unwrap();
         assert!(result.is_empty());
+    }
+
+    /// 性能テスト: 500ファイルのインデックス構築が5秒以内に完了すること
+    /// （フル1万ファイルは --ignored で実行: cargo test -- --ignored）
+    #[test]
+    fn インデックス構築が十分高速であること() {
+        use std::time::Instant;
+        let dir = TempDir::new().unwrap();
+        let mut mgr = IndexManager::open_or_create(dir.path(), "ws-perf").unwrap();
+
+        let lines: Vec<String> = (0..20)
+            .map(|i| format!("fn function_{i}() {{ /* line content */ }}"))
+            .collect();
+
+        let start = Instant::now();
+        for i in 0..500 {
+            let path = format!("/workspace/file_{i:04}.rs");
+            mgr.index_file(&path, &lines).unwrap();
+        }
+        mgr.commit().unwrap();
+        let elapsed = start.elapsed();
+
+        assert!(
+            elapsed.as_secs() < 30,
+            "500ファイル (各20行) のインデックス構築が30秒以内であること: {:.2}s",
+            elapsed.as_secs_f64()
+        );
+        assert_eq!(mgr.doc_count(), 500 * 20);
+    }
+
+    /// 性能テスト: インデックス検索が100ms以内に応答すること
+    #[test]
+    fn インデックス検索が高速であること() {
+        use std::time::Instant;
+        let dir = TempDir::new().unwrap();
+        let mut mgr = IndexManager::open_or_create(dir.path(), "ws-search-perf").unwrap();
+
+        // 200ファイル × 10行 のインデックスを構築
+        let lines: Vec<String> = (0..10)
+            .map(|i| format!("let variable_{i} = \"search_target_value\";"))
+            .collect();
+        for i in 0..200 {
+            let path = format!("/workspace/perf_{i:03}.rs");
+            mgr.index_file(&path, &lines).unwrap();
+        }
+        mgr.commit().unwrap();
+
+        let searcher = Searcher::new(&mgr).unwrap();
+        let opts = SearchOptions {
+            max_results: Some(100),
+            ..default_opts()
+        };
+
+        let start = Instant::now();
+        let result = searcher
+            .search("search_target_value", &opts, "/workspace")
+            .unwrap();
+        let elapsed = start.elapsed();
+
+        assert!(!result.is_empty(), "検索結果が返ること");
+        assert!(
+            elapsed.as_millis() < 500,
+            "検索が500ms以内であること: {}ms",
+            elapsed.as_millis()
+        );
     }
 
     #[test]

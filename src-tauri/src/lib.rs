@@ -16,11 +16,13 @@ pub fn run() {
     // トレースログの初期化
     tracing_subscriber::fmt::init();
 
-    // データディレクトリ: ~/.local/share/codesearch（macOS/Linux）
-    //                    %APPDATA%\codesearch（Windows）
-    let data_dir = dirs_next::data_dir()
+    // データディレクトリ: exe 実行ディレクトリ配下の data/（ポータブル運用）
+    // zip 展開後すぐに使用可能、インストール不要
+    let data_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
         .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("codesearch");
+        .join("data");
     std::fs::create_dir_all(&data_dir).expect("データディレクトリの作成に失敗しました");
 
     tauri::Builder::default()

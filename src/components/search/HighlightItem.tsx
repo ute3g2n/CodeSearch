@@ -78,6 +78,7 @@ const HighlightItem: React.FC<HighlightItemProps> = ({
 
       {/* 後方検索ボタン */}
       <button
+        data-testid="highlight-prev"
         title="前のマッチ（←）"
         onClick={() => onPrev(entry.id)}
         style={{
@@ -95,6 +96,7 @@ const HighlightItem: React.FC<HighlightItemProps> = ({
 
       {/* 前方検索ボタン */}
       <button
+        data-testid="highlight-next"
         title="次のマッチ（→）"
         onClick={() => onNext(entry.id)}
         style={{

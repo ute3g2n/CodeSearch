@@ -6,7 +6,6 @@
 ///   - CJK文字（U+3000-U+9FFF等）: 1文字ずつ分割（uni-gram）
 ///
 /// これにより日本語の部分一致検索が機能する。
-
 use tantivy::tokenizer::{Token, TokenStream, Tokenizer};
 
 /// トークナイザ登録名（スキーマ側で参照する）
@@ -111,7 +110,7 @@ fn tokenize(text: &str) -> Vec<Token> {
                 lower.len()
             };
             let word = &lower[byte_start2..byte_end];
-            if word.len() >= 1 {
+            if !word.is_empty() {
                 tokens.push(Token {
                     offset_from: byte_start2,
                     offset_to: byte_end,

@@ -299,6 +299,41 @@ mod tests {
     }
 
     #[test]
+    fn デバウンスにより連続イベントがまとめられること() {
+        let tmp = TempDir::new().unwrap();
+        let (tx, rx) = mpsc::channel();
+
+        let _watcher = FileWatcher::start(tmp.path(), vec![], tx).unwrap();
+
+        // ウォッチャー初期化を待つ
+        std::thread::sleep(Duration::from_millis(300));
+
+        // 100ms 間隔で連続してファイルを更新する（デバウンス時間 500ms 以内）
+        for i in 0..3 {
+            std::fs::write(
+                tmp.path().join("test.rs"),
+                format!("fn main_{i}() {{}}"),
+            )
+            .unwrap();
+            std::thread::sleep(Duration::from_millis(50));
+        }
+
+        // デバウンス(500ms) + マージン(1000ms) でイベントを受信
+        let mut events = Vec::new();
+        while let Ok(ev) = rx.recv_timeout(Duration::from_secs(2)) {
+            events.push(ev);
+        }
+
+        // デバウンスにより、複数の書き込みが1〜少数のイベントにまとまること
+        // （厳密な数は OS/FS によるため "最低1件" のみ検証）
+        assert!(!events.is_empty(), "デバウンス後にイベントが届くこと");
+        assert!(
+            events.iter().all(|e| e.path.file_name().unwrap() == "test.rs"),
+            "イベントのパスが test.rs であること"
+        );
+    }
+
+    #[test]
     fn 除外パターンにマッチするファイルのイベントは通知されないこと() {
         let tmp = TempDir::new().unwrap();
         let (tx, rx) = mpsc::channel();

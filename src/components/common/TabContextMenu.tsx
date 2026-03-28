@@ -1,6 +1,6 @@
 // タブコンテキストメニュー（付録B準拠）
 // ファイルタブ / 検索タブ で表示項目を切り替える
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { ContextMenuPosition } from "../../hooks/useContextMenu";
 import type { Tab } from "../../stores/editor";
 import { useEditorStore } from "../../stores/editor";
@@ -79,6 +79,7 @@ const TabContextMenu: React.FC<TabContextMenuProps> = ({
   onClose,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [splitSubmenuOpen, setSplitSubmenuOpen] = useState(false);
   const {
     closeTab,
     closeOtherTabs,
@@ -86,6 +87,7 @@ const TabContextMenu: React.FC<TabContextMenuProps> = ({
     closeAllTabs,
     openSearchEditor,
     splitRight,
+    revealInExplorer,
   } = useEditorStore();
 
   const isFileTab = tab.kind === "file";
@@ -172,6 +174,13 @@ const TabContextMenu: React.FC<TabContextMenuProps> = ({
               if (tab.filePath) revealInOsExplorer(tab.filePath);
             },
           } as MenuItem,
+          {
+            label: "エクスプローラービューで表示",
+            disabled: !tab.filePath,
+            onClick: () => {
+              if (tab.filePath) revealInExplorer(tab.filePath);
+            },
+          } as MenuItem,
           { separator: true } as Separator,
         ]
       : []),
@@ -225,6 +234,64 @@ const TabContextMenu: React.FC<TabContextMenuProps> = ({
         ) : (
           <MenuItemView key={entry.label} item={entry} onClose={onClose} />
         )
+      )}
+
+      {/* 分割と移動サブメニュー */}
+      <div
+        data-testid="split-and-move"
+        role="menuitem"
+        onClick={() => setSplitSubmenuOpen((v) => !v)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "5px 16px",
+          fontSize: "13px",
+          color: "var(--color-editor-fg, #d4d4d4)",
+          cursor: "pointer",
+          userSelect: "none",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.background = "var(--color-list-active-bg, #094771)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.background = "transparent";
+        }}
+      >
+        <span>分割と移動</span>
+        <span style={{ fontSize: "11px", opacity: 0.6 }}>▶</span>
+      </div>
+
+      {/* 分割と移動サブメニュー展開 */}
+      {splitSubmenuOpen && (
+        <div data-testid="split-submenu" style={{ paddingLeft: "16px" }}>
+          {(["右へ分割", "左へ分割", "上へ分割", "下へ分割"] as const).map((label) => (
+            <div
+              key={label}
+              role="menuitem"
+              data-testid={`split-${label}`}
+              onClick={() => {
+                splitRight(groupId, tab.id);
+                onClose();
+              }}
+              style={{
+                padding: "5px 16px",
+                fontSize: "13px",
+                color: "var(--color-editor-fg, #d4d4d4)",
+                cursor: "pointer",
+                userSelect: "none",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "var(--color-list-active-bg, #094771)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+              }}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

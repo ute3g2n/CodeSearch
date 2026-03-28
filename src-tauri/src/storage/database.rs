@@ -129,6 +129,23 @@ mod tests {
     }
 
     #[test]
+    fn busy_timeoutが設定されていること() {
+        let tmp = TempDir::new().unwrap();
+        let db = Database::open(tmp.path()).unwrap();
+        let conn = db.conn();
+
+        // PRAGMA busy_timeout の値を確認する
+        let timeout: i64 = conn
+            .query_row("PRAGMA busy_timeout", [], |row| row.get(0))
+            .unwrap_or(0);
+        assert!(
+            timeout >= 5000,
+            "busy_timeout が 5000ms 以上に設定されていること: {}ms",
+            timeout
+        );
+    }
+
+    #[test]
     fn WALモードで並行読み書きができること() {
         use std::sync::Arc;
         use std::thread;

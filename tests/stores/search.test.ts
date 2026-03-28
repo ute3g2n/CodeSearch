@@ -77,6 +77,7 @@ function resetStore() {
       errorMessage: null,
     },
     isBuilding: false,
+    collapsedGroups: new Set<string>(),
   });
 }
 
@@ -229,5 +230,34 @@ describe("useSearchStore", () => {
     expect(state.isBuilding).toBe(false);
     expect(state.indexStatus.state).toBe("error");
     expect(state.indexStatus.errorMessage).toContain("ファイルが読めません");
+  });
+
+  // ===== toggleGroupCollapse =====
+
+  it("toggleGroupCollapse でグループの折りたたみ状態がトグルされること", () => {
+    // 最初は折りたたまれていない
+    expect(useSearchStore.getState().collapsedGroups.has("/workspace/a.ts")).toBe(false);
+
+    // 1回目: 折りたたむ
+    useSearchStore.getState().toggleGroupCollapse("/workspace/a.ts");
+    expect(useSearchStore.getState().collapsedGroups.has("/workspace/a.ts")).toBe(true);
+
+    // 2回目: 展開する
+    useSearchStore.getState().toggleGroupCollapse("/workspace/a.ts");
+    expect(useSearchStore.getState().collapsedGroups.has("/workspace/a.ts")).toBe(false);
+  });
+
+  it("toggleGroupCollapse で複数グループを独立してトグルできること", () => {
+    useSearchStore.getState().toggleGroupCollapse("/workspace/a.ts");
+    useSearchStore.getState().toggleGroupCollapse("/workspace/b.ts");
+
+    const { collapsedGroups } = useSearchStore.getState();
+    expect(collapsedGroups.has("/workspace/a.ts")).toBe(true);
+    expect(collapsedGroups.has("/workspace/b.ts")).toBe(true);
+
+    // a.ts のみ展開
+    useSearchStore.getState().toggleGroupCollapse("/workspace/a.ts");
+    expect(useSearchStore.getState().collapsedGroups.has("/workspace/a.ts")).toBe(false);
+    expect(useSearchStore.getState().collapsedGroups.has("/workspace/b.ts")).toBe(true);
   });
 });

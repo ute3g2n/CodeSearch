@@ -177,7 +177,7 @@ const SearchEditor: React.FC<SearchEditorProps> = ({
             {isSearching ? "検索中..." : "検索"}
           </button>
           {result && (
-            <button onClick={handleOpenInEditor} style={secondaryButtonStyle}>
+            <button data-testid="open-in-editor-btn" onClick={handleOpenInEditor} style={secondaryButtonStyle}>
               エディターで開く
             </button>
           )}

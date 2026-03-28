@@ -49,6 +49,7 @@ const EditorContent: React.FC<EditorContentProps> = ({ tab }) => {
         <CodeView
           content={fileContent?.content ?? null}
           extension={ext}
+          filePath={tab.filePath ?? null}
         />
       );
     }

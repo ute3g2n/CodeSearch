@@ -55,7 +55,7 @@ const HighlightSection: React.FC = () => {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div data-testid="highlight-section" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* セクションヘッダー */}
       <div
         style={{

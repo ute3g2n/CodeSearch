@@ -1,4 +1,5 @@
 // E2E シナリオ2: ワークスペース管理
+// カバー: T-02-01, T-02-03〜05, T-02-06, T-02-07, T-02-08
 import { test, expect } from "./fixtures";
 
 test.describe("ワークスペース管理", () => {
@@ -127,6 +128,47 @@ test.describe("ワークスペースオープン後の動作", () => {
     // インデックス構築中トーストが表示されることを確認する
     await expect(page.locator('[data-testid="toast"]').first()).toBeVisible({ timeout: 3000 });
     await expect(page.locator('[data-testid="toast"]').first()).toContainText("インデックス構築中");
+  });
+
+  // T-02-06: Ctrl+K Ctrl+O でワークスペース切り替え
+  test("Ctrl+K → Ctrl+O でワークスペース選択ダイアログが起動してワークスペースが開くこと (T-02-06)", async ({ page }) => {
+    await page.goto("/");
+
+    // 起動直後はウェルカムタブが表示されていることを確認する
+    await expect(page.locator('[data-testid="welcome-tab"]')).toBeVisible();
+
+    // Ctrl+K → Ctrl+O のコードショートカットを送信する
+    await page.keyboard.press("Control+k");
+    await page.keyboard.press("Control+o");
+
+    // select_directory モックが "/mock/selected/path" を返し open_workspace が実行される
+    // ウェルカムタブが自動クローズされることでワークスペースが開いたことを確認する
+    await expect(page.locator('[data-testid="welcome-tab"]')).not.toBeVisible({ timeout: 3000 });
+  });
+
+  // T-02-08: インデックス構築完了通知
+  test("インデックス構築完了時に完了トースト通知が表示されること (T-02-08)", async ({ page }) => {
+    await page.goto("/");
+
+    // ワークスペースを開く（「フォルダーを開く」ボタンをクリック）
+    const openFolderBtn = page.locator('[data-panel="explorer"] button').first();
+    await expect(openFolderBtn).toBeVisible({ timeout: 2000 });
+    await openFolderBtn.click();
+
+    // イベントリスナーが登録されるまで待機する
+    await page.waitForTimeout(300);
+
+    // index://ready イベントを発火して完了通知をシミュレートする
+    await page.evaluate(() => {
+      (window as any).__MOCK_EMIT__("index://ready", {
+        docCount: 42,
+        elapsedMs: 123,
+      });
+    });
+
+    // 「インデックス構築完了」トーストが表示されることを確認する
+    await expect(page.locator('[data-testid="toast"]').first()).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('[data-testid="toast"]').first()).toContainText("インデックス構築完了");
   });
 
   // T-02-05: 最近開いたワークスペース一覧

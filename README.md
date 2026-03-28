@@ -45,7 +45,7 @@ npm run tauri dev
 npm run tauri build
 ```
 
-ビルド成果物は `src-tauri/target/release/bundle/` 以下に出力されます。
+ビルド成果物は `src-tauri/target/release/bundle/` 以下に出力されます（詳細は「配布パッケージ作成」を参照）。
 
 ## テスト実行
 
@@ -55,12 +55,50 @@ npm run tauri build
 npm test
 ```
 
+### E2Eテスト（Playwright）
+
+```bash
+npm run test:e2e
+```
+
+テスト結果レポートを表示するには:
+
+```bash
+npm run test:e2e:report
+```
+
 ### バックエンドテスト（Rust）
 
 ```bash
 cd src-tauri
 cargo test
 ```
+
+### Rustリントチェック（Clippy）
+
+```bash
+cd src-tauri
+cargo clippy -- -D warnings
+```
+
+## 配布パッケージ作成
+
+CodeSearch はインストーラー不要のポータブル配布です。
+zip を展開してそのまま `codesearch.exe`（または `codesearch`）を実行できます。
+設定・インデックスデータは exe と同じディレクトリの `data/` に保存されます。
+
+付属スクリプトでポータブル zip を生成します:
+
+```bash
+bash scripts/package.sh
+```
+
+内部で `npm run tauri build -- --no-bundle` を実行し、インストーラーを生成しません。
+
+成果物:
+- `dist-package/codesearch.exe`（Windows）または `dist-package/codesearch`（macOS/Linux）
+- `dist-package/data/`（初回起動前の空ディレクトリ）
+- `CodeSearch-<version>-<platform>.zip`
 
 ## ディレクトリ構成
 
@@ -93,11 +131,19 @@ CodeSearch/
 
 ## データ保存場所
 
-| OS      | パス                               |
-|---------|-----------------------------------|
-| Windows | `%APPDATA%\codesearch\`           |
-| macOS   | `~/Library/Application Support/codesearch/` |
-| Linux   | `~/.local/share/codesearch/`      |
+ポータブル運用のため、全 OS 共通で **exe 実行ディレクトリ配下の `data/`** に保存されます。
+
+```
+CodeSearch-0.1.0-Windows/
+├── codesearch.exe
+└── data/                  ← 設定・インデックス・DBがここに保存される
+    ├── settings.json
+    ├── codesearch.db
+    ├── indexes/
+    └── workspaces.json
+```
+
+zip を別ディレクトリに展開すれば、データを分離した複数環境の並行運用が可能です。
 
 ## 設定ファイル
 

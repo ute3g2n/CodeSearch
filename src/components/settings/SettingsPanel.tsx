@@ -63,7 +63,8 @@ const ToggleRow: React.FC<{
   label: string;
   value: boolean;
   onChange: (v: boolean) => void;
-}> = ({ label, value, onChange }) => (
+  testId?: string;
+}> = ({ label, value, onChange, testId }) => (
   <div
     style={{
       display: "flex",
@@ -80,6 +81,7 @@ const ToggleRow: React.FC<{
       checked={value}
       onChange={(e) => onChange(e.target.checked)}
       style={{ cursor: "pointer" }}
+      data-testid={testId}
     />
   </div>
 );
@@ -139,6 +141,7 @@ const SettingsPanel: React.FC = () => {
         label={t("settings.editorFontFamily")}
         value={draft.editorFontFamily}
         onChange={(v) => setDraft((d) => ({ ...d, editorFontFamily: v }))}
+        testId="settings-font-family"
       />
       <SettingRow
         label={t("settings.editorFontSize")}
@@ -176,6 +179,7 @@ const SettingsPanel: React.FC = () => {
         label={t("settings.minimapEnabled")}
         value={draft.minimapEnabled}
         onChange={(v) => setDraft((d) => ({ ...d, minimapEnabled: v }))}
+        testId="settings-minimap-toggle"
       />
 
       {/* 言語 */}
@@ -208,6 +212,7 @@ const SettingsPanel: React.FC = () => {
         {t("settings.excludePatternsHelp")}
       </div>
       <textarea
+        data-testid="settings-exclude-patterns"
         value={draft.excludePatterns.join("\n")}
         onChange={(e) =>
           setDraft((d) => ({

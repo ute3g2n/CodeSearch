@@ -18,6 +18,8 @@ export interface Tab {
   plainText?: string;
   scrollTop?: number;
   cursorLine?: number;
+  /** プレビュータブかどうか（true = イタリック表示、次のファイル選択時に置換される） */
+  isPreview?: boolean;
 }
 
 /** エディタグループ（画面分割の1区画） */
@@ -50,6 +52,13 @@ interface EditorState {
     path: string,
     options?: { lineNumber?: number; groupId?: string }
   ) => Promise<void>;
+  /** ファイルをプレビュータブとして開く（単一クリック用） */
+  openFilePreview: (
+    path: string,
+    options?: { groupId?: string }
+  ) => Promise<void>;
+  /** プレビュータブを永続化する（タブヘッダークリック用） */
+  confirmPreviewTab: (groupId: string, tabId: string) => void;
   openWelcomeTab: () => void;
   openSearchEditor: (query?: string) => void;
   openPlainText: (title: string, content: string) => void;
@@ -73,6 +82,10 @@ interface EditorState {
   setGroupSizes: (sizes: number[]) => void;
   updateScrollTop: (tabId: string, scrollTop: number) => void;
   updateCursorLine: (tabId: string, line: number) => void;
+  /** エクスプローラービューでハイライトするファイルパス */
+  revealedFilePath: string | null;
+  /** 指定ファイルをエクスプローラービューでハイライトする */
+  revealInExplorer: (path: string) => void;
 }
 
 /** ファイルパスからファイル名を取得する */
@@ -100,6 +113,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   groupSizes: [1],
   fileContentCache: new Map(),
   closedTabsStack: [],
+  revealedFilePath: null,
 
   /** ファイルをタブとして開く */
   openFile: async (path, options) => {
@@ -108,12 +122,25 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const group = groups.find((g) => g.id === targetGroupId);
     if (!group) return;
 
-    // 既に開いているタブがあればアクティブにする
+    // 既に開いているタブがあればアクティブにする（プレビュータブは永続化する）
     const existingTab = group.tabs.find(
       (t) => t.kind === "file" && t.filePath === path
     );
     if (existingTab) {
-      get().setActiveTab(targetGroupId, existingTab.id);
+      // プレビュータブを永続タブに変換する（ダブルクリック対応）
+      if (existingTab.isPreview) {
+        set((state) => ({
+          groups: updateGroup(state.groups, targetGroupId, (g) => ({
+            ...g,
+            tabs: g.tabs.map((t) =>
+              t.id === existingTab.id ? { ...t, isPreview: false } : t
+            ),
+            activeTabId: existingTab.id,
+          })),
+        }));
+      } else {
+        get().setActiveTab(targetGroupId, existingTab.id);
+      }
       if (options?.lineNumber !== undefined) {
         set((state) => ({
           groups: updateGroup(state.groups, targetGroupId, (g) => ({
@@ -158,6 +185,91 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     } catch {
       // 読み込みエラーはサイレントに無視（エラー表示は EditorContent で行う）
     }
+  },
+
+  /** ファイルをプレビュータブとして開く（シングルクリック用） */
+  openFilePreview: async (path, options) => {
+    const { groups, activeGroupId } = get();
+    const targetGroupId = options?.groupId ?? activeGroupId;
+    const group = groups.find((g) => g.id === targetGroupId);
+    if (!group) return;
+
+    // 既に非プレビューとして開いているタブがあればアクティブにするだけ
+    const existingPermanent = group.tabs.find(
+      (t) => t.kind === "file" && t.filePath === path && !t.isPreview
+    );
+    if (existingPermanent) {
+      get().setActiveTab(targetGroupId, existingPermanent.id);
+      return;
+    }
+
+    // 既にプレビューとして同じファイルが開いていればアクティブにするだけ
+    const existingPreview = group.tabs.find(
+      (t) => t.kind === "file" && t.filePath === path && t.isPreview
+    );
+    if (existingPreview) {
+      get().setActiveTab(targetGroupId, existingPreview.id);
+      return;
+    }
+
+    // グループ内の既存プレビュータブを探す
+    const currentPreviewTab = group.tabs.find((t) => t.isPreview);
+
+    const newTab: Tab = {
+      id: currentPreviewTab ? currentPreviewTab.id : genId(),
+      kind: "file",
+      title: fileNameFromPath(path),
+      filePath: path,
+      isPreview: true,
+    };
+
+    if (currentPreviewTab) {
+      // 既存のプレビュータブを置換する
+      set((state) => ({
+        groups: updateGroup(state.groups, targetGroupId, (g) => ({
+          ...g,
+          tabs: g.tabs.map((t) =>
+            t.id === currentPreviewTab.id ? newTab : t
+          ),
+          activeTabId: newTab.id,
+        })),
+        activeGroupId: targetGroupId,
+      }));
+    } else {
+      // 新規プレビュータブを追加する
+      set((state) => ({
+        groups: updateGroup(state.groups, targetGroupId, (g) => ({
+          ...g,
+          tabs: [...g.tabs, newTab],
+          activeTabId: newTab.id,
+        })),
+        activeGroupId: targetGroupId,
+      }));
+    }
+
+    // バックエンドからファイル内容を取得してキャッシュ
+    try {
+      const content = await readFile(path);
+      set((state) => {
+        const next = new Map(state.fileContentCache);
+        next.set(path, content);
+        return { fileContentCache: next };
+      });
+    } catch {
+      // 読み込みエラーはサイレントに無視
+    }
+  },
+
+  /** プレビュータブを永続タブに変換する（タブクリック用） */
+  confirmPreviewTab: (groupId, tabId) => {
+    set((state) => ({
+      groups: updateGroup(state.groups, groupId, (g) => ({
+        ...g,
+        tabs: g.tabs.map((t) =>
+          t.id === tabId ? { ...t, isPreview: false } : t
+        ),
+      })),
+    }));
   },
 
   /** ウェルカムタブを開く */
@@ -488,5 +600,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         ),
       })),
     }));
+  },
+
+  revealInExplorer: (path) => {
+    set({ revealedFilePath: path });
   },
 }));

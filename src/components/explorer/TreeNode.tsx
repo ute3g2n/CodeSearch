@@ -11,13 +11,20 @@ interface TreeNodeProps {
   isExpanded: boolean;
   // フォルダクリック時のコールバック
   onToggle: (path: string) => void;
-  // ファイルクリック時のコールバック
+  // ファイルシングルクリック時のコールバック
   onClick: (path: string) => void;
+  // ファイルダブルクリック時のコールバック（永続タブとして開く）
+  onDoubleClick?: (path: string) => void;
+  // 右クリックコンテキストメニューコールバック
+  onContextMenu?: (e: React.MouseEvent, node: FileNode) => void;
+  // エクスプローラービューでハイライト中かどうか
+  isRevealed?: boolean;
 }
 
 // ファイルツリーの1ノードを描画する再帰コンポーネント
 // - ファイルクリック → onClick コールバック
 // - フォルダクリック → onToggle コールバック
+// - 右クリック → onContextMenu コールバック
 // - インデント: depth * 16px
 const TreeNode: React.FC<TreeNodeProps> = ({
   node,
@@ -25,6 +32,9 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   isExpanded,
   onToggle,
   onClick,
+  onDoubleClick,
+  onContextMenu,
+  isRevealed,
 }) => {
   const handleClick = () => {
     if (node.isDir) {
@@ -32,6 +42,17 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     } else {
       onClick(node.path);
     }
+  };
+
+  const handleDoubleClick = () => {
+    if (!node.isDir) {
+      onDoubleClick?.(node.path);
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onContextMenu?.(e, node);
   };
 
   const icon = node.isDir
@@ -45,6 +66,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   return (
     <div
       className="tree-node"
+      data-revealed={isRevealed ? "true" : undefined}
       style={{
         paddingLeft: `${depth * 16}px`,
         display: "flex",
@@ -54,8 +76,11 @@ const TreeNode: React.FC<TreeNodeProps> = ({
         cursor: "pointer",
         color: "var(--color-sidebar-fg)",
         fontSize: "13px",
+        backgroundColor: isRevealed ? "var(--color-list-active-bg, #094771)" : undefined,
       }}
       onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+      onContextMenu={handleContextMenu}
     >
       {/* ディレクトリの展開/折りたたみ矢印 */}
       {node.isDir && (

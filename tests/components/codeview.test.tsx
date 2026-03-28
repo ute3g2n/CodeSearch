@@ -177,22 +177,22 @@ describe("Minimap", () => {
 // --- CodeView 統合テスト ---
 describe("CodeView", () => {
   it("コンテンツなし時にプレースホルダが表示されること", () => {
-    render(<CodeView content={null} extension={null} />);
+    render(<CodeView content={null} extension={null} filePath={null} />);
     expect(screen.getByTestId("editor-placeholder")).toBeInTheDocument();
   });
 
   it("コンテンツがある場合にエディタエリアが表示されること", () => {
-    render(<CodeView content="const x = 1;" extension="ts" />);
+    render(<CodeView content="const x = 1;" extension="ts" filePath={null} />);
     expect(screen.getByTestId("code-view-container")).toBeInTheDocument();
   });
 
   it("行番号エリアが表示されること", () => {
-    render(<CodeView content="line1\nline2\nline3" extension="ts" />);
+    render(<CodeView content="line1\nline2\nline3" extension="ts" filePath={null} />);
     expect(screen.getByTestId("gutter-container")).toBeInTheDocument();
   });
 
   it("ミニマップトグルボタンが表示されること", () => {
-    render(<CodeView content="const x = 1;" extension="ts" />);
+    render(<CodeView content="const x = 1;" extension="ts" filePath={null} />);
     expect(screen.getByRole("button", { name: /ミニマップ/i })).toBeInTheDocument();
   });
 });

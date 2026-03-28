@@ -12,7 +12,8 @@ const FileFilterInput: React.FC<{
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
-}> = ({ label, value, onChange, placeholder }) => (
+  testId?: string;
+}> = ({ label, value, onChange, placeholder, testId }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
     <label
       style={{
@@ -24,6 +25,7 @@ const FileFilterInput: React.FC<{
       {label}
     </label>
     <input
+      data-testid={testId}
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
@@ -180,6 +182,7 @@ const SearchSection: React.FC = () => {
 
         {/* ファイルフィルタ展開ボタン */}
         <button
+          data-testid="file-filter-toggle"
           onClick={() => setShowFilters((v) => !v)}
           style={{
             marginTop: "4px",
@@ -207,12 +210,14 @@ const SearchSection: React.FC = () => {
               value={includeValue}
               onChange={handleIncludeChange}
               placeholder="例: *.ts, src/**"
+              testId="include-glob-input"
             />
             <FileFilterInput
               label="除外するファイル"
               value={excludeValue}
               onChange={handleExcludeChange}
               placeholder="例: *.test.ts, node_modules"
+              testId="exclude-glob-input"
             />
           </div>
         )}

@@ -9,10 +9,33 @@ import SplitHandle from "../editor/SplitHandle";
 const EditorArea: React.FC = () => {
   const { groups, groupSizes, activeGroupId } = useEditorStore();
 
+  // ファイルD&Dのハンドラ
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const raw = e.dataTransfer.getData("text/plain").trim();
+    if (!raw) return;
+    const paths = raw.split("\n").map((p) => p.trim()).filter(Boolean);
+    const store = useEditorStore.getState();
+    if (paths.length === 1) {
+      // 単一ファイルはプレビュータブで開く
+      store.openFilePreview(paths[0]);
+    } else {
+      // 複数ファイルは通常タブで開く
+      paths.forEach((p) => store.openFile(p));
+    }
+  };
+
   return (
     <div
       data-testid="editor-area"
       className="editor-area"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
       style={{
         display: "flex",
         flexDirection: "row",

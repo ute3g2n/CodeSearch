@@ -120,12 +120,14 @@ const SearchInput: React.FC<SearchInputProps> = ({
           onClick={onToggleWholeWord}
           title="単語単位で検索 (Alt+W)"
           label="\b"
+          testId="toggle-whole-word"
         />
         <ToggleButton
           active={isRegex}
           onClick={onToggleRegex}
           title="正規表現を使用 (Alt+R)"
           label=".*"
+          testId="toggle-regex"
         />
       </div>
     </div>

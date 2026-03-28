@@ -1,6 +1,5 @@
 /// 設定管理サービス
 /// settings.json の読み書きと AppConfig の管理を担う
-
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -108,5 +107,26 @@ mod tests {
         let service = ConfigService::new(tmp.path());
         // デフォルト値にフォールバック
         assert_eq!(service.get_config().language, "ja");
+    }
+
+    #[test]
+    fn 除外パターンを保存して再読み込みできること() {
+        let tmp = TempDir::new().unwrap();
+        {
+            let mut service = ConfigService::new(tmp.path());
+            let mut config = service.get_config().clone();
+            config.exclude_patterns = vec![
+                "node_modules".to_string(),
+                ".git".to_string(),
+                "dist".to_string(),
+            ];
+            service.save_config(config).unwrap();
+        }
+        // 再作成して除外パターンが保持されていることを確認
+        let service2 = ConfigService::new(tmp.path());
+        let patterns = &service2.get_config().exclude_patterns;
+        assert_eq!(patterns.len(), 3);
+        assert!(patterns.contains(&"node_modules".to_string()));
+        assert!(patterns.contains(&"dist".to_string()));
     }
 }

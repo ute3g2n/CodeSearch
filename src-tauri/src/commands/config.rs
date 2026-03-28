@@ -1,6 +1,5 @@
 /// 設定コマンド
 /// get_config / save_config の Tauri IPC エンドポイント
-
 use tauri::State;
 
 use crate::errors::{CommandError, CommandResult};

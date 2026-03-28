@@ -58,6 +58,7 @@ const Minimap: React.FC<MinimapProps> = ({ spans, isVisible, onToggle }) => {
     >
       {/* トグルボタン */}
       <button
+        data-testid="minimap-toggle"
         aria-label="ミニマップ切り替え"
         onClick={onToggle}
         style={{
@@ -82,6 +83,7 @@ const Minimap: React.FC<MinimapProps> = ({ spans, isVisible, onToggle }) => {
       {isVisible && (
         <canvas
           ref={canvasRef}
+          data-testid="minimap-canvas"
           width={MINIMAP_WIDTH}
           height={600}
           style={{

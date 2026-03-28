@@ -33,9 +33,12 @@ interface SearchState {
   indexStatus: IndexStatus;
   // インデックス構築中フラグ
   isBuilding: boolean;
+  // 折りたたまれているグループの filePath セット
+  collapsedGroups: Set<string>;
 
   // アクション
   setQuery: (query: string) => void;
+  toggleGroupCollapse: (filePath: string) => void;
   setOptions: (options: Partial<SearchOptions>) => void;
   executeSearch: () => Promise<void>;
   clearResult: () => void;
@@ -73,8 +76,17 @@ export const useSearchStore = create<SearchState>((set, get) => ({
     errorMessage: null,
   },
   isBuilding: false,
+  collapsedGroups: new Set<string>(),
 
   setQuery: (query) => set({ query }),
+
+  toggleGroupCollapse: (filePath) =>
+    set((s) => {
+      const next = new Set(s.collapsedGroups);
+      if (next.has(filePath)) next.delete(filePath);
+      else next.add(filePath);
+      return { collapsedGroups: next };
+    }),
 
   setOptions: (options) =>
     set((s) => ({ options: { ...s.options, ...options } })),

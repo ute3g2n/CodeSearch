@@ -2,12 +2,14 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 
 // EditorStore モック（コンポーネント単体テスト用）
-vi.mock("../../src/stores/editor", () => ({
-  useEditorStore: vi.fn((selector: (s: { fileContentCache: Map<string, unknown> }) => unknown) => {
-    const state = { fileContentCache: new Map() };
+vi.mock("../../src/stores/editor", () => {
+  const state = { fileContentCache: new Map(), confirmPreviewTab: vi.fn() };
+  const useEditorStore = vi.fn((selector: (s: typeof state) => unknown) => {
     return typeof selector === "function" ? selector(state) : state;
-  }),
-}));
+  }) as any;
+  useEditorStore.getState = () => state;
+  return { useEditorStore };
+});
 
 // WorkspaceStore モック
 vi.mock("../../src/stores/workspace", () => ({

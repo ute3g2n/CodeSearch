@@ -70,6 +70,7 @@ const Toast: React.FC<ToastProps> = ({ notification }) => {
           {notification.title}
         </span>
         <button
+          data-testid="toast-close"
           onClick={() => remove(notification.id)}
           aria-label="通知を閉じる"
           style={{

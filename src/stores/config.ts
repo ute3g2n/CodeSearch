@@ -3,6 +3,7 @@
 
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { setLanguage } from "../i18n";
 
 /** アプリケーション設定（Rust AppConfig の camelCase 変換）*/
 export interface AppConfig {
@@ -47,6 +48,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   /** get_config コマンドで設定を取得してストアに反映する */
   loadConfig: async () => {
     const config = await invoke<AppConfig>("get_config");
+    setLanguage(config.language as "ja" | "en");
     set({ config, isLoaded: true });
   },
 
@@ -54,6 +56,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   saveConfig: async (partial) => {
     const nextConfig = { ...get().config, ...partial };
     await invoke("save_config", { config: nextConfig });
+    if (partial.language) {
+      setLanguage(partial.language as "ja" | "en");
+    }
     set({ config: nextConfig });
   },
 }));

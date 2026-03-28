@@ -345,6 +345,58 @@ describe("EditorStore.removeGroup", () => {
   });
 });
 
+// --- moveTab テスト ---
+describe("EditorStore.moveTab", () => {
+  beforeEach(() => resetStore());
+
+  it("タブを別グループに移動できること", async () => {
+    // グループ1にタブを開く
+    await useEditorStore.getState().openFile("/workspace/a.ts");
+    const tabId = getTabs()[0].id;
+
+    // splitRight でグループ2を作成
+    useEditorStore.getState().splitRight("group-1", tabId);
+
+    const { groups } = useEditorStore.getState();
+    const group2Id = groups[1].id;
+
+    // splitRight 後は activeGroupId が group2 になるため、group-1 を明示して開く
+    await useEditorStore.getState().openFile("/workspace/b.ts", { groupId: "group-1" });
+    const group1Tabs = useEditorStore.getState().groups[0].tabs;
+    const tabBId = group1Tabs[0].id;
+
+    // グループ1のタブをグループ2に移動する
+    useEditorStore.getState().moveTab("group-1", tabBId, group2Id, 0);
+
+    const state = useEditorStore.getState();
+    const fromGroup = state.groups.find((g) => g.id === "group-1")!;
+    const toGroup = state.groups.find((g) => g.id === group2Id)!;
+
+    // 移動元からタブが消えること
+    expect(fromGroup.tabs.find((t) => t.id === tabBId)).toBeUndefined();
+    // 移動先にタブが追加されること
+    expect(toGroup.tabs.find((t) => t.id === tabBId)).toBeDefined();
+  });
+
+  it("moveTab 後に移動先グループがアクティブになること", async () => {
+    await useEditorStore.getState().openFile("/workspace/a.ts");
+    const tabId = getTabs()[0].id;
+    useEditorStore.getState().splitRight("group-1", tabId);
+
+    const { groups } = useEditorStore.getState();
+    const group2Id = groups[1].id;
+
+    // splitRight 後は activeGroupId が group2 になるため、group-1 を明示して開く
+    await useEditorStore.getState().openFile("/workspace/b.ts", { groupId: "group-1" });
+    const group1Tabs = useEditorStore.getState().groups[0].tabs;
+    const tabBId = group1Tabs[0].id;
+
+    useEditorStore.getState().moveTab("group-1", tabBId, group2Id, 0);
+
+    expect(useEditorStore.getState().activeGroupId).toBe(group2Id);
+  });
+});
+
 // --- setGroupSizes テスト ---
 describe("EditorStore.setGroupSizes", () => {
   beforeEach(() => resetStore());

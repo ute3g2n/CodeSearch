@@ -387,6 +387,37 @@ mod tests {
         assert!(result.is_err());
     }
 
+    #[tokio::test]
+    async fn 空ファイルを読み込めること() {
+        let dir = TempDir::new().unwrap();
+        let file_path = dir.path().join("empty.txt");
+        std_fs::write(&file_path, b"").unwrap();
+
+        let svc = make_service(vec![]);
+        let result = svc.read_file(&file_path).await.unwrap();
+
+        assert_eq!(result.content, "");
+        assert_eq!(result.line_count, 0);
+        assert_eq!(result.size, 0);
+    }
+
+    #[tokio::test]
+    async fn 大きなファイルを読み込めること() {
+        let dir = TempDir::new().unwrap();
+        let file_path = dir.path().join("large.txt");
+
+        // 約 1MB のテキストファイルを生成（NUL バイトなし）
+        let line = "A".repeat(100) + "\n";
+        let content = line.repeat(10_000); // ~1MB
+        std_fs::write(&file_path, content.as_bytes()).unwrap();
+
+        let svc = make_service(vec![]);
+        let result = svc.read_file(&file_path).await.unwrap();
+
+        assert!(result.size > 900_000, "サイズが 900KB 以上であること");
+        assert_eq!(result.line_count, 10_000);
+    }
+
     // --- fuzzy_match テスト ---
 
     #[test]

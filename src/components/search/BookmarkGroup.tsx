@@ -31,6 +31,7 @@ const BookmarkGroup: React.FC<BookmarkGroupProps> = ({
     <div style={{ marginBottom: "4px" }}>
       {/* グループヘッダー */}
       <div
+        data-testid="bookmark-group-header"
         style={{
           display: "flex",
           alignItems: "center",
@@ -56,6 +57,7 @@ const BookmarkGroup: React.FC<BookmarkGroupProps> = ({
         />
         <span style={{ flex: 1 }}>{items.length} 件</span>
         <button
+          data-testid="bookmark-group-clear"
           title="このグループのブックマークを全て削除"
           onClick={(e) => {
             e.stopPropagation();
@@ -80,6 +82,7 @@ const BookmarkGroup: React.FC<BookmarkGroupProps> = ({
           {items.map((bookmark) => (
             <div
               key={bookmark.id}
+              data-testid="bookmark-item"
               title={`${bookmark.filePath}:${bookmark.lineNumber}`}
               onClick={() => onJump(bookmark)}
               style={{

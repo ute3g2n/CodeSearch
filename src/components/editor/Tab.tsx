@@ -40,6 +40,7 @@ const Tab: React.FC<TabProps> = ({ tab, isActive, onClick, onClose, onContextMen
       data-testid="tab"
       data-title={tab.title}
       data-active={isActive ? "true" : "false"}
+      data-preview={tab.isPreview ? "true" : "false"}
       onContextMenu={onContextMenu}
       style={{
         display: "inline-flex",
@@ -68,8 +69,8 @@ const Tab: React.FC<TabProps> = ({ tab, isActive, onClick, onClose, onContextMen
       {/* ファイルアイコン */}
       <span style={{ fontSize: "12px" }}>{getTabIcon(tab)}</span>
 
-      {/* タブタイトル */}
-      <span>{tab.title}</span>
+      {/* タブタイトル（プレビュータブはイタリック表示） */}
+      <span style={{ fontStyle: tab.isPreview ? "italic" : "normal" }}>{tab.title}</span>
 
       {/* 閉じるボタン */}
       <button

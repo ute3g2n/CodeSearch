@@ -71,6 +71,7 @@ const GroupHeader: React.FC<{
   matchCount: number;
 }> = ({ group, matchCount }) => (
   <div
+    data-testid="search-result-group"
     style={{
       display: "flex",
       alignItems: "center",
@@ -98,6 +99,7 @@ const GroupHeader: React.FC<{
       {group.relativePath}
     </span>
     <span
+      data-testid="search-result-match-count"
       style={{
         fontSize: "10px",
         color: "var(--color-sidebar-fg, #cccccc)",
@@ -120,6 +122,7 @@ const MatchRow: React.FC<{
 
   return (
     <div
+      data-testid="search-result-match"
       role="button"
       tabIndex={0}
       onClick={handleClick}

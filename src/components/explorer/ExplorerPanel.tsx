@@ -1,8 +1,16 @@
 import React, { useEffect, useState, useCallback } from "react";
 import type { FileNode } from "../../ipc/types";
-import { getFileTree } from "../../ipc/commands";
+import { getFileTree, revealInOsExplorer } from "../../ipc/commands";
 import { onFsChanged } from "../../ipc/events";
+import { useEditorStore } from "../../stores/editor";
+import { useWorkspaceStore } from "../../stores/workspace";
 import TreeNode from "./TreeNode";
+
+interface TreeContextMenuState {
+  x: number;
+  y: number;
+  node: FileNode;
+}
 
 interface ExplorerPanelProps {
   // 現在のワークスペースパス（null = 未選択）
@@ -25,6 +33,12 @@ const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
   const [childrenCache, setChildrenCache] = useState<
     Record<string, FileNode[]>
   >({});
+  const [treeContextMenu, setTreeContextMenu] = useState<TreeContextMenuState | null>(null);
+  // フォルダD&Dのドロップハイライト状態
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  // エクスプローラービューでハイライトするファイルパス
+  const revealedFilePath = useEditorStore((s) => s.revealedFilePath);
 
   // ルートツリーを再読み込みする関数
   const reloadTree = useCallback(() => {
@@ -107,10 +121,23 @@ const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
     }
   };
 
-  // ファイルクリック（EditorStore と連携）
-  const handleFileClick = (_path: string) => {
-    // TODO: EditorStore.openFile(path) — 後続フェーズで連携
+  // ファイルシングルクリック: プレビュータブとしてファイルを開く
+  const handleFileClick = (path: string) => {
+    useEditorStore.getState().openFilePreview(path);
   };
+
+  // ファイルダブルクリック: 永続タブとしてファイルを開く
+  const handleFileDblClick = (path: string) => {
+    useEditorStore.getState().openFile(path);
+  };
+
+  // ノードの右クリックコンテキストメニューを表示する
+  const handleNodeContextMenu = (e: React.MouseEvent, node: FileNode) => {
+    setTreeContextMenu({ x: e.clientX, y: e.clientY, node });
+  };
+
+  // コンテキストメニューを閉じる
+  const closeContextMenu = () => setTreeContextMenu(null);
 
   // ノードを再帰描画する
   const renderNode = (node: FileNode, depth: number): React.ReactNode => {
@@ -125,6 +152,9 @@ const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
           isExpanded={isExpanded}
           onToggle={handleToggle}
           onClick={handleFileClick}
+          onDoubleClick={handleFileDblClick}
+          onContextMenu={handleNodeContextMenu}
+          isRevealed={!node.isDir && node.path === revealedFilePath}
         />
         {node.isDir &&
           isExpanded &&
@@ -133,9 +163,33 @@ const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
     );
   };
 
+  // フォルダD&Dのハンドラ（ワークスペース未選択時）
+  const handleExplorerDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setIsDragOver(true);
+  };
+
+  const handleExplorerDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleExplorerDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const path = e.dataTransfer.getData("text/plain").trim();
+    if (path) {
+      useWorkspaceStore.getState().openWorkspace(path);
+    }
+  };
+
   if (!workspacePath) {
     return (
       <div
+        data-testid="explorer-drop-zone"
+        onDragOver={handleExplorerDragOver}
+        onDragLeave={handleExplorerDragLeave}
+        onDrop={handleExplorerDrop}
         style={{
           display: "flex",
           flexDirection: "column",
@@ -145,6 +199,8 @@ const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
           gap: "12px",
           padding: "16px",
           color: "var(--color-sidebar-fg)",
+          outline: isDragOver ? "2px dashed var(--color-accent, #007acc)" : "none",
+          backgroundColor: isDragOver ? "rgba(0,122,204,0.05)" : "transparent",
         }}
       >
         <p style={{ fontSize: "12px", textAlign: "center", opacity: 0.8 }}>
@@ -170,6 +226,7 @@ const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
     <div
       data-testid="file-tree"
       style={{ height: "100%", overflow: "auto" }}
+      onClick={closeContextMenu}
     >
       {isLoading ? (
         <div style={{ padding: "8px", fontSize: "12px", opacity: 0.6 }}>
@@ -177,6 +234,56 @@ const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
         </div>
       ) : (
         tree.map((node) => renderNode(node, 0))
+      )}
+
+      {/* エクスプローラーコンテキストメニュー */}
+      {treeContextMenu && (
+        <div
+          data-testid="explorer-context-menu"
+          role="menu"
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{
+            position: "fixed",
+            left: treeContextMenu.x,
+            top: treeContextMenu.y,
+            zIndex: 2000,
+            background: "var(--color-editor-bg, #1e1e1e)",
+            border: "1px solid var(--color-border, #3c3c3c)",
+            borderRadius: "4px",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+            minWidth: "180px",
+            padding: "4px 0",
+          }}
+        >
+          {!treeContextMenu.node.isDir && (
+            <div
+              role="menuitem"
+              data-testid="explorer-copy-path"
+              onClick={() => {
+                navigator.clipboard.writeText(treeContextMenu.node.path);
+                closeContextMenu();
+              }}
+              style={{ padding: "5px 16px", fontSize: "13px", cursor: "pointer", color: "var(--color-editor-fg, #d4d4d4)", userSelect: "none" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--color-list-active-bg, #094771)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+            >
+              パスのコピー
+            </div>
+          )}
+          <div
+            role="menuitem"
+            data-testid="explorer-reveal"
+            onClick={() => {
+              revealInOsExplorer(treeContextMenu.node.path);
+              closeContextMenu();
+            }}
+            style={{ padding: "5px 16px", fontSize: "13px", cursor: "pointer", color: "var(--color-editor-fg, #d4d4d4)", userSelect: "none" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--color-list-active-bg, #094771)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+          >
+            エクスプローラーで表示
+          </div>
+        </div>
       )}
     </div>
   );

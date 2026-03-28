@@ -291,4 +291,39 @@ mod tests {
         // 行 11 → 11-3 = 8、行 20 → 20-3 = 17
         assert_eq!(lines, vec![8, 10, 17]);
     }
+
+    #[test]
+    fn 異なるワークスペースのブックマークが分離されること() {
+        // T-02-11: workspace_id が異なるブックマークは互いに見えないことを確認する
+        let (_tmp, db) = setup();
+        let repo = BookmarkRepo::new(&db);
+
+        // ws-a にブックマーク追加
+        repo.add(&AddBookmarkRequest {
+            workspace_id: "ws-a".into(),
+            file_path: "/path/a.rs".into(),
+            line_number: 1,
+            color_index: 0,
+            preview_text: None,
+        })
+        .unwrap();
+
+        // ws-b にブックマーク追加
+        repo.add(&AddBookmarkRequest {
+            workspace_id: "ws-b".into(),
+            file_path: "/path/b.rs".into(),
+            line_number: 2,
+            color_index: 1,
+            preview_text: None,
+        })
+        .unwrap();
+
+        let list_a = repo.list_by_workspace("ws-a").unwrap();
+        let list_b = repo.list_by_workspace("ws-b").unwrap();
+
+        assert_eq!(list_a.len(), 1, "ws-a は1件のみ");
+        assert_eq!(list_a[0].file_path, "/path/a.rs");
+        assert_eq!(list_b.len(), 1, "ws-b は1件のみ");
+        assert_eq!(list_b[0].file_path, "/path/b.rs");
+    }
 }

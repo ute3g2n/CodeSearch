@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import Tab from "./Tab";
 import TabContextMenu from "../common/TabContextMenu";
 import type { Tab as TabType } from "../../stores/editor";
+import { useEditorStore } from "../../stores/editor";
 
 interface TabBarProps {
   tabs: TabType[];
@@ -97,7 +98,11 @@ const TabBar: React.FC<TabBarProps> = ({
             <Tab
               tab={tab}
               isActive={tab.id === activeTabId}
-              onClick={() => onTabClick(tab.id)}
+              onClick={() => {
+                // プレビュータブをクリックした場合は永続タブに変換する
+                useEditorStore.getState().confirmPreviewTab(groupId, tab.id);
+                onTabClick(tab.id);
+              }}
               onClose={() => onTabClose(tab.id)}
               onContextMenu={(e) => handleContextMenu(tab.id, e)}
             />

@@ -199,3 +199,10 @@ window.__TAURI_INTERNALS__ = {
     windows: [{ label: "main" }],
   },
 };
+
+// @tauri-apps/api/event の _unlisten が呼ぶ window.__TAURI_EVENT_PLUGIN_INTERNALS__ をモック
+window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+  unregisterListener: function (event, eventId) {
+    // イベントリスナーの登録解除（ノーオペレーション）
+  },
+};

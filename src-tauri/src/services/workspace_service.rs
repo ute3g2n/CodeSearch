@@ -121,7 +121,7 @@ impl WorkspaceService {
         let workspaces = self.workspaces.read().unwrap();
         let path = self.data_dir.join("workspaces.json");
         let content = serde_json::to_string_pretty(&*workspaces)
-            .map_err(|e| AppError::IoError(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            .map_err(|e| AppError::IoError(std::io::Error::other(e)))?;
         std::fs::write(&path, content)?;
         Ok(())
     }
@@ -189,5 +189,19 @@ mod tests {
         let svc2 = WorkspaceService::new(tmp.path());
         assert_eq!(svc2.list().len(), 1);
         assert_eq!(svc2.list()[0].path, "/home/user/project");
+    }
+
+    #[test]
+    fn ワークスペースを開くとworkspaces_jsonファイルが作成されること() {
+        // T-02-09: data/workspaces.json がディスク上に作成されることを確認する
+        let tmp = TempDir::new().unwrap();
+        let svc = WorkspaceService::new(tmp.path());
+
+        let json_path = tmp.path().join("workspaces.json");
+        assert!(!json_path.exists(), "開く前はファイルが存在しないこと");
+
+        svc.open("/home/user/myproject").unwrap();
+
+        assert!(json_path.exists(), "open() 後に workspaces.json が作成されること");
     }
 }
